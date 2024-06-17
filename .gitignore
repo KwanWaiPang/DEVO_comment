@@ -158,10 +158,12 @@ figures/*.pdf
 
 rsync*
 models/*
-datasets/TartanAir.pickle
-datasets/TartanAir
-TartanAirResults
-thirdparty/*
-movies/
+# datasets/TartanAir.pickle
+# datasets/TartanAir
+datasets/*
+# TartanAirResults
+thirdparty/eigen-3.4.0
+thirdparty/rpg_trajectory_evaluation
+# movies/
 results/*
-TartanAirEVS.pickle
+# TartanAirEVS.pickle

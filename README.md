@@ -22,3 +22,26 @@
 <br>
 
 # DEVO配置记录
+~~~
+<!-- 创建conda环境 -->
+conda env create -f environment.yml
+conda activate devo
+
+<!-- 安装eigen -->
+wget https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.zip
+unzip eigen-3.4.0.zip -d thirdparty
+
+<!-- 安装DEVO -->
+# install DEVO
+pip install .
+~~~
+
+# 训练记录
+* 下载[TartanAir](https://theairlab.org/tartanair-dataset/)中所有的数据,采用[工具](https://github.com/castacks/tartanair_tools)
+~~~
+cd thirdparty/tartanair_tools/
+pip install boto3 #需要安装依赖~
+python download_training.py --output-dir ../../datasets --rgb --depth --only-left
+~~~
+
+* 采用[vid2e/ESIM](https://github.com/KwanWaiPang/ESIM_comment)实现将video变成event
