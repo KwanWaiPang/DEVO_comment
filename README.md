@@ -36,6 +36,24 @@ unzip eigen-3.4.0.zip -d thirdparty
 pip install .
 ~~~
 
+# 测试作者已训练好的模型
+~~~
+./download_model.sh
+~~~
+* 下载测试数据，并且对测试数据集进行处理（以HKU数据集为例）
+~~~
+conda activate nerf-ngp
+bypy list
+bypy download [remotepath] [localpath]  #注意要指定一下下载的路径~
+
+python scripts/pp_hku.py
+~~~
+* 运行测试代码
+~~~
+python evals/eval_evs/eval_XXX_evs.py --datapath=<path to xxx dataset> --weights="DEVO.pth" --stride=1 --trials=1 --expname=<your name>
+~~~
+
+
 # 训练记录
 * 下载[TartanAir](https://theairlab.org/tartanair-dataset/)中所有的数据,采用[工具](https://github.com/castacks/tartanair_tools)
 ~~~
