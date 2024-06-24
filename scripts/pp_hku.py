@@ -122,6 +122,7 @@ def process_seq_hku(indirs, side="left", DELTA_MS=None):
         assert sorted(tss_imgs_us) == tss_imgs_us
         assert sorted(tss_gt_us) == tss_gt_us
 
+        # 选择最小的时间戳作为起始时间
         t0_us = np.minimum(np.minimum(tss_gt_us[0], tss_imgs_us[0]), t0_evs)
         tss_imgs_us = [t - t0_us for t in tss_imgs_us]
 
@@ -137,7 +138,7 @@ def process_seq_hku(indirs, side="left", DELTA_MS=None):
         # write events (and also substract t0_evs)
         evs = read_evs_from_rosbag(bag, topics[evtopic_idx], H=H, W=W)
         for ev in evs:
-            ev[2] -= t0_us
+            ev[2] -= t0_us #减去起始时间,获得的就是相对时间
         h5outfile = os.path.join(indir, f"evs_{side}.h5")
         write_evs_arr_to_h5(evs, h5outfile)
 
@@ -184,13 +185,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--indir", help="Input image directory.", default=""
     )
-    args = parser.parse_args()
+    args = parser.parse_args()#传入的参数就是数据包的路径
 
     roots = []
     for root, dirs, files in os.walk(args.indir):
         for f in files:
-            if f.endswith(".bag"):
-                p = os.path.join(root, f"{f.split('.')[0]}")
+            if f.endswith(".bag"):#找到后缀为.bag的文件
+                p = os.path.join(root, f"{f.split('.')[0]}")#找到文件的路径
                 os.makedirs(p, exist_ok=True)
                 if p not in roots:
                     roots.append(p)
@@ -202,6 +203,7 @@ if __name__ == "__main__":
 
     processes = []
     for i in range(cors):
+        # 多进程处理读取数据
         p = multiprocessing.Process(target=process_seq_hku, args=(roots_split[i].tolist(),))
         p.start()
         processes.append(p)
