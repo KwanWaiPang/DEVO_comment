@@ -19,6 +19,7 @@ def evaluate(config, args, net, train_step=None, datapath="", split_file=None,
 
     scenes = open(split_file).read().split()
     scenes = [s for s in scenes if '#' not in s]
+    print("the number of scenes is", len(scenes),"the input scenes are: ", scenes)
 
     results_dict_scene, figures = {}, {}
     all_results = []

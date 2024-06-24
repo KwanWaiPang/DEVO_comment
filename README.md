@@ -77,8 +77,20 @@ python evals/eval_evs/eval_hku_evs.py --datapath=/home/gwp/DEVO/datasets/HKU_dat
   <img width="90%" src="assets/HKU_aggressive_small_flip.png">
 </p>
 
-* 采用mvsec数据集测试
+* 采用rpg数据集测试
+~~~
+conda activate devo
+python scripts/pp_rpg.py --indir=datasets/rpg/
 
+python evals/eval_evs/eval_rpg_evs.py --datapath=/home/gwp/DEVO/datasets/rpg/ --weights="DEVO.pth" --stride=1 --trials=1 --expname=gwphku
+
+python evals/eval_e2v/eval_rpg_e2v.py --datapath=/home/gwp/DEVO/datasets/rpg/ --weights="DEVO.pth" --stride=1 --trials=1 --expname=gwphku
+
+~~~
+
+<p align="center">
+  <img width="90%" src="assets/rpg_box2.png">
+</p>
 
 
 
