@@ -98,14 +98,16 @@ class Update(nn.Module):
 
         return net, (self.d(net), weights, None)
 
-
+# 负责将输入图像分割成小块（patch）并进行处理。
 class Patchifier(nn.Module):
     def __init__(self, patch_size=3, dim_inet=DIM, dim_fnet=128, dim=32, patch_selector=SelectionMethod.SCORER):
         super(Patchifier, self).__init__()
-        self.patch_size = patch_size
+        self.patch_size = patch_size #patch_size为3（传入及默认的都为3）
         self.dim_inet = dim_inet # dim of context extractor and hidden state (update operator)
         self.dim_fnet = dim_fnet # dim of matching extractor
         self.patch_selector = patch_selector.lower()
+
+         # 卷积网络的编码器。主要作用是对输入图像进行特征提取，经过多个卷积层和归一化层的处理，最后输出一个指定维度的特征图。
         self.fnet = BasicEncoder4Evs(output_dim=self.dim_fnet, dim=dim, norm_fn='instance') # matching-feature extractor
         self.inet = BasicEncoder4Evs(output_dim=self.dim_inet, dim=dim, norm_fn='none') # context-feature extractor
         if self.patch_selector == SelectionMethod.SCORER:
@@ -215,17 +217,22 @@ class CorrBlock:
             corrs += [ altcorr.corr(self.gmap, self.pyramid[i], coords / self.levels[i], ii, jj, self.radius, self.dropout) ]
         return torch.stack(corrs, -1).view(1, len(ii), -1)
 
-
-class eVONet(nn.Module):
+# 定义的event VO网络，可参考DPVO中的VONet
+class eVONet(nn.Module):#一个继承自nn.Module的类，表示一个神经网络模型。
     def __init__(self, P=3, use_viewer=False, dim_inet=DIM, dim_fnet=128, dim=32, patch_selector=SelectionMethod.SCORER, norm="std2", randaug=False):
-        super(eVONet, self).__init__()
-        self.P = P
+        super(eVONet, self).__init__() #继承父类的初始化函数
+        self.P = P #patch size，默认值为3
         self.dim_inet = dim_inet # dim of context extractor and hidden state (update operator)
         self.dim_fnet = dim_fnet # dim of matching extractor
         self.patch_selector = patch_selector
+        #创建一个Patchify block，进行特征提取
         self.patchify = Patchifier(patch_size=self.P, dim_inet=self.dim_inet, dim_fnet=self.dim_fnet, dim=dim, patch_selector=patch_selector)
+        # Patchifier返回的包括：特征图fmap，patch特征图gmap，patch内部特征图imap，图像块patches，索引index（以及颜色信息clr)
+
+        #创建一个Update block，进行更新操作
         self.update = Update(self.P, self.dim_inet)
         
+        #输出的特征维度，DPVO中是384
         self.dim = dim # dim of the first layer in extractor
         self.RES = 4.0
         self.norm = norm

@@ -9,16 +9,18 @@ from utils.viz_utils import viz_flow_inference
 
 H, W = 260, 346
 
-@torch.no_grad()
+@torch.no_grad()  #表示该函数不会计算梯度（由于是导入网络权重的）
 def evaluate(config, args, net, train_step=None, datapath="", split_file=None, 
              trials=1, stride=1, plot=False, save=False, return_figure=False, viz=False, timing=False, side='left', viz_flow=False):
     dataset_name = "hku_evs"
     assert side == "left" or side == "right"
 
+    # 若配置文件为空，则使用默认配置文件
     if config is None:
         config = cfg
         config.merge_from_file("config/default.yaml")
-        
+    
+    # 读取场景的名称    
     scenes = open(split_file).read().split()
 
     results_dict_scene, figures = {}, {}
@@ -36,10 +38,10 @@ def evaluate(config, args, net, train_step=None, datapath="", split_file=None,
                                           iterator=hku_evs_iterator(datapath_val, side=side, stride=stride, timing=timing, H=H, W=W),
                                           timing=timing, H=H, W=W, viz_flow=viz_flow)
 
-            # load  traj
+            # load  traj（这应该是获取gt trajectory的值）
             tss_traj_us, traj_hf = load_gt_us(os.path.join(datapath_val, f"gt_stamped_{side}.txt"))
 
-            # do evaluation 
+            # do evaluation （进行验证）
             data = (traj_hf, tss_traj_us, traj_est, tstamps)
             hyperparam = (train_step, net, dataset_name, scene, trial, cfg, args)
             all_results, results_dict_scene, figures, outfolder = log_results(data, hyperparam, all_results, results_dict_scene, figures, 
@@ -62,6 +64,7 @@ def evaluate(config, args, net, train_step=None, datapath="", split_file=None,
 
 if __name__ == '__main__': 
     import argparse
+    # 导入一系列参数
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', default="config/eval_hku.yaml")
     parser.add_argument('--datapath', default='', help='path to dataset directory')
@@ -78,15 +81,18 @@ if __name__ == '__main__':
     parser.add_argument('--viz_flow', action="store_true")
     parser.add_argument('--expname', type=str, default="")
 
+     # 解析命令行参数并将结果赋值给args。
     args = parser.parse_args()
-    assert_eval_config(args)
+    assert_eval_config(args)# 检查几个配置的参数是否合理
 
+    # args.config就是VO的配置文件，通过merge_from_file函数将配置文件中的内容合并到程序的配置对象cfg中（cfg 是一个配置对象，用来存储程序运行时所需的各种配置参数）
     cfg.merge_from_file(args.config)
     print("Running eval_hku_evs.py with config...")
     print(cfg) 
 
     torch.manual_seed(1234)
 
+    # 人为设置一些参数
     args.save_trajectory = True
     args.plot = True
     val_results, val_figures = evaluate(cfg, args, args.weights, datapath=args.datapath, split_file=args.val_split, trials=args.trials, \

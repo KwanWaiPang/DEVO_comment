@@ -63,3 +63,5 @@ python download_training.py --output-dir ../../datasets --rgb --depth --only-lef
 ~~~
 
 * 采用[vid2e/ESIM](https://github.com/KwanWaiPang/ESIM_comment)实现将video变成event
+* 阅读验证代码[Link](evals\eval_evs\eval_hku_evs.py)
+* 采用[Link](scripts\pp_hku.py)生成输入数据，并采用DEVO预训练模型来测试~

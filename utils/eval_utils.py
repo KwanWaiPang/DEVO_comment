@@ -108,6 +108,7 @@ def run_voxel_norm_seq(voxeldir, cfg, network, viz=False, iterator=None, timing=
 
 @torch.no_grad()
 def run_voxel(voxeldir, cfg, network, viz=False, iterator=None, timing=False, H=480, W=640, viz_flow=False, scale=1.0, **kwargs): 
+    # 初始化DEVO对象
     slam = DEVO(cfg, network, evs=True, ht=H, wd=W, viz=viz, viz_flow=viz_flow, **kwargs)
     
     for i, (voxel, intrinsics, t) in enumerate(iterator):
@@ -138,10 +139,13 @@ def run_voxel(voxeldir, cfg, network, viz=False, iterator=None, timing=False, H=
     flowdata = slam.flow_data if viz_flow else None
     return poses, tstamps, flowdata
 
-
+# 检查输入参数是否合法（assert（断言）用于判断一个表达式，在表达式条件为false 的时候触发异常。）
 def assert_eval_config(args):
+    # 检查权重文件是否存在
     assert os.path.isfile(args.weights) and (".pth" in args.weights or ".pt" in args.weights)
+    # 检查数据集路径是否存在
     assert os.path.isfile(args.val_split)
+    # 检查trials是否大于0
     assert args.trials > 0
 
 def ate(traj_ref, traj_est, timestamps):

@@ -28,7 +28,7 @@ class DEVO:
         self.dim = dim
         # TODO add patch_selector
         
-        self.load_weights(network)
+        self.load_weights(network) #从网络中加载权重
         self.is_initialized = False
         self.enable_timing = False # TODO timing in param
 
@@ -45,7 +45,7 @@ class DEVO:
         RES = self.RES
 
         ### state attributes ###
-        self.tlist = []
+        self.tlist = []  #一个列表，用于存储时间戳
         self.counter = 0 # how often this network is called __call__()
 
         self.flow_data = {}
@@ -100,12 +100,14 @@ class DEVO:
         if viz:
             self.start_viewer()
 
+     # 加载权重（self:是该方法所属类的实例。）
     def load_weights(self, network):
-        # load network from checkpoint file
-        if isinstance(network, str):
+        # load network from checkpoint file（如果 network 是一个字符串（即路径），则从文件中加载网络权重。）
+        if isinstance(network, str): #  检查是否为字符串类型
             print(f"Loading from {network}")
-            checkpoint = torch.load(network)
+            checkpoint = torch.load(network) #采用torch.load函数加载权重文件
             # TODO infer dim_inet=self.dim_inet, dim_fnet=self.dim_fnet, dim=self.dim
+            # 若为event，应该运行的是eVONet
             self.network = VONet(patch_selector=self.cfg.PATCH_SELECTOR) if not self.evs else \
                 eVONet(dim_inet=self.dim_inet, dim_fnet=self.dim_fnet, dim=self.dim, patch_selector=self.cfg.PATCH_SELECTOR)
             if 'model_state_dict' in checkpoint:
@@ -113,24 +115,27 @@ class DEVO:
             else:
                 # legacy
                 from collections import OrderedDict
+                 # 创建一个新的有序字典 （保证按输入的顺序）new_state_dict。
                 new_state_dict = OrderedDict()
+                # 遍历读取的state_dict键值对，如果键中不包含“update.lmbda”，则将其添加到new_state_dict中。
                 for k, v in checkpoint.items():
                     if "update.lmbda" not in k:
                         new_state_dict[k.replace('module.', '')] = v
-                self.network.load_state_dict(new_state_dict)
+                self.network.load_state_dict(new_state_dict)# 加载新的网络权重
 
         else:
             self.network = network
 
-        # steal network attributes
+        # steal network attributes（复制网络属性）
         self.dim_inet = self.network.dim_inet
         self.dim_fnet = self.network.dim_fnet
         self.dim = self.network.dim
         self.RES = self.network.RES
         self.P = self.network.P
 
-        self.network.cuda()
-        self.network.eval()
+        # 配置网络
+        self.network.cuda() #将网络移动到 GPU 上。
+        self.network.eval() #将网络设置为评估模式（即禁用 dropout 和 batch normalization 的训练行为）。
 
         # if self.cfg.MIXED_PRECISION:
         #     self.network.half()
