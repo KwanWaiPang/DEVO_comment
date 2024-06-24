@@ -6,7 +6,7 @@ import cv2
 import os
 from datetime import datetime
 from evo.core.trajectory import PoseTrajectory3D
-from evo.tools import plot
+from evo.tools import plot #弹出窗可视化
 
 
 def render(x: np.ndarray, y: np.ndarray, pol: np.ndarray, H: int, W: int) -> np.ndarray:

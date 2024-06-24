@@ -47,6 +47,8 @@ bypy list
 bypy download [remotepath] [localpath]  #注意要指定一下下载的路径~
 
 python scripts/pp_hku.py
+<!-- 注意输入为文件夹的路径 -->
+python scripts/pp_hku.py --indir=datasets/HKU_dataset/
 ~~~
 * 运行测试代码
 ~~~
@@ -64,4 +66,27 @@ python download_training.py --output-dir ../../datasets --rgb --depth --only-lef
 
 * 采用[vid2e/ESIM](https://github.com/KwanWaiPang/ESIM_comment)实现将video变成event
 * 阅读验证代码[Link](evals\eval_evs\eval_hku_evs.py)
-* 采用[Link](scripts\pp_hku.py)生成输入数据，并采用DEVO预训练模型来测试~
+* 采用[Link](scripts\pp_hku.py)生成输入数据（注意输入应该是文件夹而非具体的rosbag），并采用DEVO预训练模型来测试~
+~~~
+python scripts/pp_hku.py --indir=datasets/HKU_dataset/
+
+python evals/eval_evs/eval_hku_evs.py --datapath=/home/gwp/DEVO/datasets/HKU_dataset/ --weights="DEVO.pth" --stride=1 --trials=1 --expname=gwphku
+~~~
+
+<p align="center">
+  <img width="90%" src="assets/HKU_aggressive_small_flip.png">
+</p>
+
+* 采用mvsec数据集测试
+
+
+
+
+# 系列Debug
+* 运行下面代码时报错，是因为弹窗可视化不行~~~应该是画读取数据的过程
+~~~
+python scripts/pp_hku.py --indir=/home/gwp/DEVO/datasets/HKU_dataset/
+from evo.tools import plot
+
+ImportError: Cannot load backend 'TkAgg' which requires the 'tk' interactive framework, as 'headless' is currently running
+~~~

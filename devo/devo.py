@@ -384,6 +384,8 @@ class DEVO:
             torch.arange(t0, t1, device="cuda"),
             torch.arange(max(self.n-r, 0), self.n, device="cuda"), indexing='ij')
 
+    # 进行tracking
+    # 类似于__init__()，使实例能够像函数一样被调用，所谓的image就是event voxel
     def __call__(self, tstamp, image, intrinsics, scale=1.0):
         """ track new frame """
 

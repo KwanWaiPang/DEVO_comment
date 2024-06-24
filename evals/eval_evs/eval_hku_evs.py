@@ -22,6 +22,7 @@ def evaluate(config, args, net, train_step=None, datapath="", split_file=None,
     
     # 读取场景的名称    
     scenes = open(split_file).read().split()
+    print("the number of scenes is", len(scenes),"the input scenes are: ", scenes)
 
     results_dict_scene, figures = {}, {}
     all_results = []
@@ -69,7 +70,7 @@ if __name__ == '__main__':
     parser.add_argument('--config', default="config/eval_hku.yaml")
     parser.add_argument('--datapath', default='', help='path to dataset directory')
     parser.add_argument('--weights', default="DEVO.pth")
-    parser.add_argument('--val_split', type=str, default="splits/hku/hku_val.txt")
+    parser.add_argument('--val_split', type=str, default="splits/hku/hku_val.txt") # 验证集的路径,有它来决定验证的序列
     parser.add_argument('--trials', type=int, default=5)
     parser.add_argument('--plot', action="store_true")
     parser.add_argument('--save_trajectory', action="store_true")

@@ -7,6 +7,10 @@ import glob
 import multiprocessing
 
 import h5py
+
+# import sys
+# 添加 DEVO 目录到 sys.path
+# sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.load_utils import compute_rmap_vector
 from utils.event_utils import write_evs_arr_to_h5
 from utils.viz_utils import render
@@ -187,11 +191,14 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()#传入的参数就是数据包的路径
 
+    print("Processing HKU data in dir: ", args.indir)
+
     roots = []
     for root, dirs, files in os.walk(args.indir):
         for f in files:
-            if f.endswith(".bag"):#找到后缀为.bag的文件
+            if f.endswith(".bag"):#找到后缀为.bag的文件,因此输入的为文件夹的名字而不是rosbag的名字
                 p = os.path.join(root, f"{f.split('.')[0]}")#找到文件的路径
+                print("p:", p)
                 os.makedirs(p, exist_ok=True)
                 if p not in roots:
                     roots.append(p)

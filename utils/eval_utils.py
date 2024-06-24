@@ -111,6 +111,7 @@ def run_voxel(voxeldir, cfg, network, viz=False, iterator=None, timing=False, H=
     # 初始化DEVO对象
     slam = DEVO(cfg, network, evs=True, ht=H, wd=W, viz=viz, viz_flow=viz_flow, **kwargs)
     
+    # voxel应该是在迭代器创建的时候产生的
     for i, (voxel, intrinsics, t) in enumerate(iterator):
         if timing and i == 0:
             t0 = torch.cuda.Event(enable_timing=True)
@@ -123,7 +124,7 @@ def run_voxel(voxeldir, cfg, network, viz=False, iterator=None, timing=False, H=
             visualize_voxel(voxel.detach().cpu())
         
         with Timer("DEVO", enabled=timing):
-            slam(t, voxel, intrinsics, scale=scale)
+            slam(t, voxel, intrinsics, scale=scale)#调用DEVO的__call__方法
 
     for _ in range(12):
         slam.update()

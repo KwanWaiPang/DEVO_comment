@@ -271,7 +271,7 @@ class BasicEncoder4Evs(nn.Module):
         super(BasicEncoder4Evs, self).__init__()
         self.norm_fn = norm_fn
         self.multidim = multidim
-        self.bins = bins
+        self.bins = bins #输入的通道数，默认为 5
         self.dim = dim
 
         # 根据 norm_fn 选择不同的归一化层。
@@ -287,7 +287,7 @@ class BasicEncoder4Evs(nn.Module):
         elif self.norm_fn == 'none':
             self.norm1 = nn.Sequential() #使用一个空的 Sequential 容器，相当于不使用归一化。
 
-        # 第一个卷积层及激活函数（输入通道数为 3，输出通道数为 DIM，卷积核大小为 7，步幅为 2，填充为 3。）
+        # 第一个卷积层及激活函数（输入通道数为 self.bins（应该就是event的通道数），输出通道数为 DIM，卷积核大小为 7，步幅为 2，填充为 3。）
         self.conv1 = nn.Conv2d(self.bins, self.dim, kernel_size=7, stride=2, padding=3)
         self.relu1 = nn.ReLU(inplace=True)  #第一个 ReLU 激活函数，使用 inplace=True 以节省内存
 

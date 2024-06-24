@@ -105,13 +105,13 @@ class Patchifier(nn.Module):
         self.patch_size = patch_size #patch_size为3（传入及默认的都为3）
         self.dim_inet = dim_inet # dim of context extractor and hidden state (update operator)
         self.dim_fnet = dim_fnet # dim of matching extractor
-        self.patch_selector = patch_selector.lower()
+        self.patch_selector = patch_selector.lower() #转换为小写
 
          # 卷积网络的编码器。主要作用是对输入图像进行特征提取，经过多个卷积层和归一化层的处理，最后输出一个指定维度的特征图。
         self.fnet = BasicEncoder4Evs(output_dim=self.dim_fnet, dim=dim, norm_fn='instance') # matching-feature extractor
         self.inet = BasicEncoder4Evs(output_dim=self.dim_inet, dim=dim, norm_fn='none') # context-feature extractor
         if self.patch_selector == SelectionMethod.SCORER:
-            self.scorer = Scorer(5)
+            self.scorer = Scorer(5) #创建一个Scorer对象，用于评估patch的重要性
 
     def __event_gradient(self, images):
         images = images.sum(dim=2) # sum over bins
@@ -123,8 +123,11 @@ class Patchifier(nn.Module):
 
     def forward(self, images, patches_per_image=80, disps=None, return_color=False, scorer_eval_mode="multi", scorer_eval_use_grid=True):
         """ extract patches from input images """
-        fmap = self.fnet(images) / 4.0 # (1, 15, 128, 120, 160)
-        imap = self.inet(images) / 4.0 # (1, 15, 384, 120, 160)
+
+        # 进行特征提取（将提取的特征图缩放到四分之一大小。）
+        # 这里的images应该是event representation，通道数为4
+        fmap = self.fnet(images) / 4.0 # (1, 15, 128, 120, 160)，#通过fnet对输入图像进行特征提取，然后除以4.0，获取特征图 fmap
+        imap = self.inet(images) / 4.0 # (1, 15, 384, 120, 160) #通过inet对输入图像进行特征提取，然后除以4.0，获取内部特征图 imap
 
         b, n, c, h, w = fmap.shape # (1, 15, 128, 120, 160)
         P = self.patch_size
