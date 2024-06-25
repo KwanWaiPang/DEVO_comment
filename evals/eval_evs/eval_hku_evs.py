@@ -35,6 +35,7 @@ def evaluate(config, args, net, train_step=None, datapath="", split_file=None,
             datapath_val = os.path.join(datapath, scene)
 
             # run the slam system
+            # 通过调用hku_evs_iterator来将事件数据进行打包处理
             traj_est, tstamps, flowdata = run_voxel(datapath_val, config, net, viz=viz, 
                                           iterator=hku_evs_iterator(datapath_val, side=side, stride=stride, timing=timing, H=H, W=W),
                                           timing=timing, H=H, W=W, viz_flow=viz_flow)

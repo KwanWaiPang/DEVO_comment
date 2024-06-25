@@ -1106,7 +1106,7 @@ def hku_evs_iterator(indir, side="left", stride=1, timing=False, dT_ms=None, H=2
     rectify_map = read_rmap(os.path.join(indir, f"rectify_map_{side}.h5"), H=H, W=W)
 
     # 从h5文件中读取事件数据
-    fnameh5 = os.path.join(indir, f"evs_{side}.h5")
+    fnameh5 = os.path.join(indir, f"evs_{side}.h5")#文件名字，evs_left.h5
     datain = h5py.File(fnameh5, 'r') # (events, ms_to_idx)
     evs_slicer = EventSlicer(datain)
 
