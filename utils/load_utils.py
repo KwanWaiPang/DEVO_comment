@@ -1095,7 +1095,7 @@ def get_imstart_imstop_hku(indir):
 
 # 从hku数据集中读取event并转换为voxel？
 def hku_evs_iterator(indir, side="left", stride=1, timing=False, dT_ms=None, H=260, W=346):
-    if timing:
+    if timing:#用于计时
         t0 = torch.cuda.Event(enable_timing=True)
         t1 = torch.cuda.Event(enable_timing=True)
         t0.record()
@@ -1117,11 +1117,11 @@ def hku_evs_iterator(indir, side="left", stride=1, timing=False, dT_ms=None, H=2
     if hotpixfilter:
         trafos.append(RemoveHotPixelsVoxel(num_stds=10))
     if dT_ms is None:
-        dT_ms = np.mean(np.diff(tss_imgs_us)) / 1e3
+        dT_ms = np.mean(np.diff(tss_imgs_us)) / 1e3 #转换为ms
 
     imstart, imstop = 0, -1  
     # [DEBUG]
-    imstart, imstop = get_imstart_imstop_hku(indir)
+    imstart, imstop = get_imstart_imstop_hku(indir) #只选取一段小范围的数据
     del_idxs = None
     if "HDR_circle" in indir:
         del_idxs = [1349, 1350, 1351, 1352, 1353, 1354]

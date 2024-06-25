@@ -13,7 +13,7 @@ from scipy.spatial.transform import Rotation as R
 from utils.viz_utils import render
 from utils.event_utils import EventSlicer, compute_ms_to_idx
 from utils.load_utils import read_ecd_tss, get_calib_fpv
-from utils.pose_utils import check_rot
+# from utils.pose_utils import check_rot #找不到
 
 
 def write_poses(indir, T_cam_imu):
@@ -29,7 +29,7 @@ def write_poses(indir, T_cam_imu):
         T_world_body = np.eye(4)
         T_world_body[:3, 3] = quat_in[:3]
         T_world_body[:3, :3] = R.from_quat(quat_in[3:]).as_matrix()
-        check_rot(T_world_body[:3, :3])
+        # check_rot(T_world_body[:3, :3])
         T_world_cam = T_world_body @ T_body_cam
 
         quat_out = R.from_matrix(T_world_cam[:3, :3]).as_quat()
@@ -48,12 +48,16 @@ def process_seq_fpv(indirs):
         has_gt = "_with_gt" in indir
         
         evs_file = glob.glob(os.path.join(indir, "events.txt"))
+        print("evs_file: ", evs_file)
         assert len(evs_file) == 1
         evs = np.asarray(np.loadtxt(evs_file[0], delimiter=" ")) # (N, 4) with [ts_sec, x, y, p]
         evs[:, 0] = evs[:, 0] * 1e6 
 
-        imgdir = os.path.join(indir, "img")
+        # imgdir = os.path.join(indir, "img")
+        imgdir="img" #下面用了join，所以这里不用join
+        print("imgdir: ", imgdir)
         imgdirout = os.path.join(indir, f"images_undistorted")
+        print("imgdirout: ", imgdirout)
         os.makedirs(imgdirout, exist_ok=True)
 
         img_list = sorted(os.listdir(os.path.join(indir, imgdir)))
@@ -94,6 +98,8 @@ def process_seq_fpv(indirs):
             evs[:, 0] -= offset_us
             assert evs[0, 0] < 1e6
 
+        print("after reading the data");
+
         # calib data
         Kdist, dist_coeffs, T_cam_imu = get_calib_fpv(indir)
 
@@ -108,7 +114,8 @@ def process_seq_fpv(indirs):
         f.close()        
 
         # 1) undistorting images
-        img_list_undist = sorted(os.listdir(os.path.join(indir, imgdirout)))
+        # img_list_undist = sorted(os.listdir(os.path.join(indir, imgdirout)))
+        img_list_undist = sorted(os.listdir( imgdirout))
         if len(img_list_undist) == len(img_list):
             print("Images already undistorted. Skipping")
         else:

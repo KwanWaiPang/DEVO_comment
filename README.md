@@ -71,6 +71,9 @@ python download_training.py --output-dir ../../datasets --rgb --depth --only-lef
 python scripts/pp_hku.py --indir=datasets/HKU_dataset/
 
 python evals/eval_evs/eval_hku_evs.py --datapath=/home/gwp/DEVO/datasets/HKU_dataset/ --weights="DEVO.pth" --stride=1 --trials=1 --expname=gwphku
+
+<!-- 由event生成image -->
+python evals/eval_e2v/eval_hku_e2v.py --indir=/home/gwp/DEVO/datasets/HKU_dataset/
 ~~~
 
 <p align="center">
@@ -84,13 +87,27 @@ python scripts/pp_rpg.py --indir=datasets/rpg/
 
 python evals/eval_evs/eval_rpg_evs.py --datapath=/home/gwp/DEVO/datasets/rpg/ --weights="DEVO.pth" --stride=1 --trials=1 --expname=gwphku
 
-python evals/eval_e2v/eval_rpg_e2v.py --datapath=/home/gwp/DEVO/datasets/rpg/ --weights="DEVO.pth" --stride=1 --trials=1 --expname=gwphku
-
 ~~~
 
 <p align="center">
   <img width="90%" src="assets/rpg_box2.png">
 </p>
+
+* 采用UZH-FPV数据集进行测试
+~~~
+conda activate devo
+<!-- 处理数据 -->
+python scripts/pp_fpv.py --indir=datasets/uzh-fpv/
+
+<!-- 运行测试,注意要先修改splits中读入的序列 -->
+python evals/eval_evs/eval_fpv_evs.py --datapath=/home/gwp/DEVO/datasets/uzh-fpv/ --weights="DEVO.pth" --stride=1 --trials=1 --expname=gwphku
+
+~~~
+
+<p align="center">
+  <img width="90%" src="assets/fpv_indoor_forward7.png">
+</p>
+
 
 
 

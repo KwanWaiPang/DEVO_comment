@@ -23,6 +23,8 @@ def evaluate(config, args, net, train_step=None, datapath="", split_file=None,
         
     scenes = open(split_file).read().split()
 
+    print(f"Running evaluation on {len(scenes)} scenes", scenes)
+
     results_dict_scene, figures = {}, {}
     all_results = []
     for i, scene in enumerate(scenes):
