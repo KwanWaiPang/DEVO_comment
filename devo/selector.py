@@ -19,6 +19,8 @@ class SelectionMethod(str, enum.Enum):
 class Scorer(nn.Module):
     def __init__(self, bins=5) -> None:
         super().__init__()
+
+        # 所谓的scorer就是一个堆叠的卷积层
         self.scorer = nn.Sequential(
             nn.Conv2d(bins, 8, kernel_size=3),
             nn.ReLU(inplace=True),
@@ -29,7 +31,7 @@ class Scorer(nn.Module):
             nn.Conv2d(32, 1, kernel_size=3),
             nn.MaxPool2d(kernel_size=4, stride=4))
         
-        
+        # 对模型参数进行初始化
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')

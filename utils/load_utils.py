@@ -45,13 +45,13 @@ def change_intrinsics_resize(intrinsics, H, W, H_orig=720, W_orig=1280):
     return intrinsics
 
 def read_batch_as_voxel(evs_slicer, t0_us, t1_us, rectify_map, trafos, Horig, Worig, Nbins=5):
-    ev_batch = evs_slicer.get_events(t0_us, t1_us)
+    ev_batch = evs_slicer.get_events(t0_us, t1_us)#获取这个时间段的events
     if ev_batch is None:
         return None
     if len(ev_batch["t"]) == 0:
         print(f"lens: {len(ev_batch['x'])}, {len(ev_batch['y'])}, {len(ev_batch['t'])}, {len(ev_batch['p'])}\n")
         return None
-
+    # 进行去畸变
     rect = rectify_map[ev_batch["y"], ev_batch["x"]]
     voxel = to_voxel_grid(rect[..., 0], rect[..., 1], ev_batch["t"], ev_batch["p"], H=Horig, W=Worig, nb_of_time_bins=Nbins)
 
@@ -67,7 +67,7 @@ def get_real_data_list(evs_slicer, tss_imgs_us, intrinsics, rectify_map, trafos,
         t0_us, t1_us = ts_us, ts_us + dT_ms*1e3
 
         voxel = read_batch_as_voxel(evs_slicer, t0_us, t1_us, rectify_map, trafos, Horig, Worig)
-        if voxel is None:
+        if voxel is None:#当这个期间的voxel为空，就跳过这个时间段，并且打印出来
             print(f"Found no events in {(t0_us)/1e6:.3f}secs to {(t1_us)/1e6:.3f}secs at frame-idx {i}.jpg")
             continue
 
@@ -1108,21 +1108,21 @@ def hku_evs_iterator(indir, side="left", stride=1, timing=False, dT_ms=None, H=2
     # 从h5文件中读取事件数据
     fnameh5 = os.path.join(indir, f"evs_{side}.h5")#文件名字，evs_left.h5
     datain = h5py.File(fnameh5, 'r') # (events, ms_to_idx)
-    evs_slicer = EventSlicer(datain)
+    evs_slicer = EventSlicer(datain)#从h5文件中读取事件数据
 
     tss_imgs_us = np.loadtxt(os.path.join(indir, f"tss_imgs_us_{side}.txt"))
 
     trafos = []
     hotpixfilter = False
-    if hotpixfilter:
+    if hotpixfilter:#不运行，所以trafos还是空的
         trafos.append(RemoveHotPixelsVoxel(num_stds=10))
-    if dT_ms is None:
+    if dT_ms is None:#此处运行，dT_ms应该是保存voxel的时间间隔
         dT_ms = np.mean(np.diff(tss_imgs_us)) / 1e3 #转换为ms
 
     imstart, imstop = 0, -1  
     # [DEBUG]
-    imstart, imstop = get_imstart_imstop_hku(indir) #只选取一段小范围的数据
-    del_idxs = None
+    imstart, imstop = get_imstart_imstop_hku(indir) #只选取一段小范围的数据，确定开始与结束的索引
+    del_idxs = None #删除的索引
     if "HDR_circle" in indir:
         del_idxs = [1349, 1350, 1351, 1352, 1353, 1354]
     elif "HDR_slow" in indir:
@@ -1130,13 +1130,14 @@ def hku_evs_iterator(indir, side="left", stride=1, timing=False, dT_ms=None, H=2
     else:
         tss_imgs_us = tss_imgs_us[imstart:imstop:stride]
     
-    if del_idxs is not None:
+    if del_idxs is not None: #如果删除的索引不为空
         del_idxs.extend(np.arange(0, imstart).tolist())
         del_idxs.extend(np.arange(imstop, len(tss_imgs_us)).tolist())
         tss_imgs_us = np.delete(tss_imgs_us, del_idxs)
         tss_imgs_us = tss_imgs_us[::stride]
     # end [DEBUG]
 
+    # 根据时间错获取数据（返回的data_list就是voxel，内参，voxel代表的时间）（trafos应该是空的）
     data_list = get_real_data_list(evs_slicer, tss_imgs_us, intrinsics, rectify_map, trafos, dT_ms, Horig=H, Worig=W)
 
     datain.close()
@@ -1148,6 +1149,8 @@ def hku_evs_iterator(indir, side="left", stride=1, timing=False, dT_ms=None, H=2
         print(f"Preloaded {len(data_list)} HKU voxels in {dt} secs, e.g. {len(data_list)/dt} FPS")
     print(f"Preloaded {len(data_list)} HKU voxels, imstart={imstart}, imstop={imstop}, stride={stride}, dT_ms={dT_ms} on {indir}")
 
+    # 代码中的每一次循环都会从 data_list 中提取一个元组 (voxel, intrinsics, ts_us)，将其转换为 CUDA 张量，并通过yield返回这些张量。
+    # return用于一次性返回最终结果，而yield用于按需生成和获取值的生成器函数
     for (voxel, intrinsics, ts_us) in data_list:
         yield voxel.cuda(), intrinsics.cuda(), ts_us
 

@@ -272,7 +272,7 @@ class BasicEncoder4Evs(nn.Module):
         self.norm_fn = norm_fn
         self.multidim = multidim
         self.bins = bins #输入的通道数，默认为 5
-        self.dim = dim
+        self.dim = dim #输入为32
 
         # 根据 norm_fn 选择不同的归一化层。
         if self.norm_fn == 'group':
@@ -287,12 +287,12 @@ class BasicEncoder4Evs(nn.Module):
         elif self.norm_fn == 'none':
             self.norm1 = nn.Sequential() #使用一个空的 Sequential 容器，相当于不使用归一化。
 
-        # 第一个卷积层及激活函数（输入通道数为 self.bins（应该就是event的通道数），输出通道数为 DIM，卷积核大小为 7，步幅为 2，填充为 3。）
+        # 第一个卷积层及激活函数（输入通道数为 self.bins（应该就是event的通道数），输出通道数为 dim，卷积核大小为 7，步幅为 2，填充为 3。）
         self.conv1 = nn.Conv2d(self.bins, self.dim, kernel_size=7, stride=2, padding=3)
         self.relu1 = nn.ReLU(inplace=True)  #第一个 ReLU 激活函数，使用 inplace=True 以节省内存
 
          # 中间层
-        self.in_planes = self.dim
+        self.in_planes = self.dim #32，dpvo中是384
         # 通过 _make_layer 方法创建两个网络的block(实际上为residual network)。
         self.layer1 = self._make_layer(self.dim, stride=1)
         self.layer2 = self._make_layer(2*self.dim, stride=2)

@@ -23,9 +23,9 @@ class DEVO:
         self.cfg = cfg
         self.evs = evs
 
-        self.dim_inet = dim_inet
-        self.dim_fnet = dim_fnet
-        self.dim = dim
+        self.dim_inet = dim_inet # 384
+        self.dim_fnet = dim_fnet # 128
+        self.dim = dim # 32
         # TODO add patch_selector
         
         self.load_weights(network) #从网络中加载权重
@@ -479,6 +479,7 @@ class DEVO:
         # plt.show()
 
         # TODO patches with depth is available (val)
+        # 调用patchify函数，进行特征的提取
         with autocast(enabled=self.cfg.MIXED_PRECISION):
             fmap, gmap, imap, patches, _, clr = \
                 self.network.patchify(image,

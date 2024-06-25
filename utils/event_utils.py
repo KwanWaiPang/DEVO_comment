@@ -19,7 +19,7 @@ class EventSlicer:
             for dset_str in ['p', 'x', 'y', 't']:
                 self.events[dset_str] = self.h5f['events/{}'.format(dset_str)]
         else:
-            for dset_str in ['p', 'x', 'y', 't']:
+            for dset_str in ['p', 'x', 'y', 't']:#遍历p,x,y,t四个元素
                 self.events[dset_str] = self.h5f['{}'.format(dset_str)]
 
         # This is the mapping from milliseconds to event index:

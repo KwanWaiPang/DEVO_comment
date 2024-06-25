@@ -111,14 +111,14 @@ def run_voxel(voxeldir, cfg, network, viz=False, iterator=None, timing=False, H=
     # 初始化DEVO对象
     slam = DEVO(cfg, network, evs=True, ht=H, wd=W, viz=viz, viz_flow=viz_flow, **kwargs)
     
-    # voxel应该是在迭代器创建的时候产生的
-    for i, (voxel, intrinsics, t) in enumerate(iterator):
+    # voxel应该是在迭代器创建的时候（比如hku_evs_iterator函数）产生的
+    for i, (voxel, intrinsics, t) in enumerate(iterator):#遍历迭代器，每一组存放着一个voxel、一个相机内参和一个时间戳
         if timing and i == 0:
             t0 = torch.cuda.Event(enable_timing=True)
             t1 = torch.cuda.Event(enable_timing=True)
             t0.record()
 
-        if viz: 
+        if viz: #如果viz为True，则调用visualize_voxel函数来将voxel可视化
             # import matplotlib.pyplot as plt
             # plt.switch_backend('Qt5Agg')
             visualize_voxel(voxel.detach().cpu())

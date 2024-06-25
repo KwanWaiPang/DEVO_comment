@@ -110,6 +110,7 @@ class Patchifier(nn.Module):
          # 卷积网络的编码器。主要作用是对输入图像进行特征提取，经过多个卷积层和归一化层的处理，最后输出一个指定维度的特征图。
         self.fnet = BasicEncoder4Evs(output_dim=self.dim_fnet, dim=dim, norm_fn='instance') # matching-feature extractor
         self.inet = BasicEncoder4Evs(output_dim=self.dim_inet, dim=dim, norm_fn='none') # context-feature extractor
+        # 上面两个block中，输入的维度是32，dpvo中应该是384
         if self.patch_selector == SelectionMethod.SCORER:
             self.scorer = Scorer(5) #创建一个Scorer对象，用于评估patch的重要性
 
@@ -133,6 +134,7 @@ class Patchifier(nn.Module):
         P = self.patch_size
 
         # Patch selection
+        # 原本的DPVO中基于梯度来对patch进行选择，而event改为用一个卷积网络进行patch selector
         if self.patch_selector == SelectionMethod.GRADIENT:
             # bias patch selection towards regions with high gradient
             g = self.__event_gradient(images) # gradient map (b,n_frames,h/4-1,w/4-1)
@@ -151,23 +153,24 @@ class Patchifier(nn.Module):
             x = torch.randint(1, w-1, size=[n, patches_per_image], device="cuda")
             y = torch.randint(1, h-1, size=[n, patches_per_image], device="cuda")
         elif self.patch_selector == SelectionMethod.SCORER:
-            scores = self.scorer(images) # (1, 15, 118, 158)
-            scores = torch.sigmoid(scores)
+            scores = self.scorer(images) # 对于输入的数据先进行selector处理 (1, 15, 118, 158)
+            scores = torch.sigmoid(scores) #对输入的数据进行sigmoid处理，将其转换为0-1之间的数值，作为patch的重要性评分
             
-            if self.training:
+            if self.training: #如果是在训练的阶段
                 x = torch.randint(0, w-2, size=[n, 3*patches_per_image], device="cuda")
                 y = torch.randint(0, h-2, size=[n, 3*patches_per_image], device="cuda")
 
                 coords = torch.stack([x, y], dim=-1).float() # (n_frames,3*patches_per_image,2)
                 scores = altcorr.patchify(scores[0,:,None], coords, 0).view(n, 3 * patches_per_image) # extract patches of scorer map
                 
+                # 根据分数排序
                 vx, ix = torch.sort(scores, dim=1) # sort by score (n_frames,3*patches_per_image)
                 x = x + 1
                 y = y + 1
                 x = torch.gather(x, 1, ix[:, -patches_per_image:]) # choose patch idx with largest score
                 y = torch.gather(y, 1, ix[:, -patches_per_image:])
                 scores = vx[:, -patches_per_image:].contiguous().view(n,patches_per_image)
-            else:            
+            else: #测试阶段似乎只是选择梯度而已？           
                 patch_selector_fn = PatchSelector(scorer_eval_mode, grid=scorer_eval_use_grid)
                 x, y = patch_selector_fn(scores, patches_per_image)
                 coords = torch.stack([x, y], dim=-1).float() # (b*n,patches_per_image,2)
@@ -179,6 +182,7 @@ class Patchifier(nn.Module):
             print(f"{self.patch_selector} not implemented")
             raise NotImplementedError
         
+        #获取patch的坐标（dim=-1 表示在最后一个维度上堆叠，使得每个坐标对 (x, y) 成为二维坐标。）
         coords = torch.stack([x, y], dim=-1).float() # in range (H//4, W//4)
         imap = altcorr.patchify(imap[0], coords, 0).view(b, -1, self.dim_inet, 1, 1) # [B, n_images*n_patches_per_image, dim_inet, 1, 1]
         gmap = altcorr.patchify(fmap[0], coords, P//2).view(b, -1, self.dim_fnet, P, P) # [B, n_images*n_patches_per_image, dim_fnet, 3, 3]
@@ -197,7 +201,7 @@ class Patchifier(nn.Module):
 
         if self.training:
             if self.patch_selector == SelectionMethod.SCORER:
-                return fmap, gmap, imap, patches, index, scores
+                return fmap, gmap, imap, patches, index, scores  #要把scores返回出去，作为patch的重要性评分，用于训练~
         else:
             if return_color:
                 return fmap, gmap, imap, patches, index, clr
@@ -225,8 +229,8 @@ class eVONet(nn.Module):#一个继承自nn.Module的类，表示一个神经网�
     def __init__(self, P=3, use_viewer=False, dim_inet=DIM, dim_fnet=128, dim=32, patch_selector=SelectionMethod.SCORER, norm="std2", randaug=False):
         super(eVONet, self).__init__() #继承父类的初始化函数
         self.P = P #patch size，默认值为3
-        self.dim_inet = dim_inet # dim of context extractor and hidden state (update operator)
-        self.dim_fnet = dim_fnet # dim of matching extractor
+        self.dim_inet = dim_inet # 384 dim of context extractor and hidden state (update operator)
+        self.dim_fnet = dim_fnet # 128 dim of matching extractor
         self.patch_selector = patch_selector
         #创建一个Patchify block，进行特征提取
         self.patchify = Patchifier(patch_size=self.P, dim_inet=self.dim_inet, dim_fnet=self.dim_fnet, dim=dim, patch_selector=patch_selector)
