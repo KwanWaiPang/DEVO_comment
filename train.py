@@ -64,7 +64,7 @@ def kabsch_umeyama(A, B):
     c = VarA / torch.trace(torch.diag(D))
     return c
 
-
+# 训练的过程
 def train(rank, args):
     """ main training loop """
     
@@ -72,7 +72,7 @@ def train(rank, args):
     if args.ddp:
         setup_ddp(rank, args)
 
-    # fetch dataset
+    # fetch dataset（获取数据集）
     if args.evs:
         db = dataset_factory(['tartan_evs'], datapath=args.datapath, n_frames=args.n_frames,
                              fgraph_pickle=args.fgraph_pickle, train_split=args.train_split,
@@ -86,7 +86,7 @@ def train(rank, args):
                              fgraph_pickle=args.fgraph_pickle, train_split=args.train_split, 
                              val_split=args.val_split, strict_split=False, sample=True, return_fname=True, scale=args.scale)
 
-    # setup dataloader
+    # setup dataloader（获取数据）
     if args.ddp:
         train_sampler = torch.utils.data.distributed.DistributedSampler(
             db, shuffle=True, num_replicas=args.gpu_num, rank=rank)
@@ -94,18 +94,19 @@ def train(rank, args):
     else:
         train_loader = DataLoader(db, batch_size=args.batch, shuffle=True, num_workers=4)
 
-    # Initial VOnet
+    # Initial VOnet（初始化网络）
     kwargs_net = {"dim_inet": args.dim_inet, "dim_fnet": args.dim_fnet, "dim": args.dim}
     net = VONet(**kwargs_net, patch_selector=args.patch_selector.lower()) if not args.evs else \
     eVONet(**kwargs_net, patch_selector=args.patch_selector.lower(), norm=args.norm, randaug=args.randaug)
 
-    net.train()
+    net.train() #将网络设置为训练模式
     net.cuda()
     P = net.P # patch size (squared)
         
     if args.ddp:
         net = DDP(net, device_ids=[rank], find_unused_parameters=False)
 
+    # 优化器设置以及学习率调度
     optimizer = torch.optim.AdamW(net.parameters(), lr=args.lr, weight_decay=1e-6)
     scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, 
         args.lr, args.steps, pct_start=0.01, cycle_momentum=False, anneal_strategy='linear')
@@ -169,10 +170,10 @@ def train(rank, args):
                 # poses, poses_gt (SE3.data of dim (B,n_frames,7))
 
                 # Compute loss and metrics
-                loss = 0.0
-                pose_loss = 0.0
-                flow_loss = 0.0
-                scores_loss = torch.as_tensor(0.0)
+                loss = 0.0 #总的loss
+                pose_loss = 0.0 #姿态loss
+                flow_loss = 0.0 #光流loss
+                scores_loss = torch.as_tensor(0.0) #这个是用于patch selector的loss
                 for i, data in enumerate(traj):
                     if args.patch_selector == SelectionMethod.SCORER:
                         (v, x, y, P1, P2, kl, scores, v_full, x_full, y_full, ba_weights, kk, dij) = data
@@ -309,7 +310,7 @@ def train(rank, args):
     if args.ddp:
         dist.destroy_process_group()
 
-
+# 检查这些参数是否合法
 def assert_config(args):
     assert os.path.isfile(args.config)
     assert os.path.isdir(args.datapath)
@@ -345,7 +346,7 @@ if __name__ == '__main__':
     import configargparse
     parser = configargparse.ArgumentParser()
     parser.add_argument(
-        '-c', '--config',
+        '-c', '--config', #参数文件
         default='config/DEVO_base.conf',
         is_config_file=True,
         help='config file path',
@@ -368,7 +369,7 @@ if __name__ == '__main__':
     parser.add_argument('--eval', action='store_true', help='enable eval on TartanAir')
     parser.add_argument('--train_split', type=str, default="splits/tartan/tartan_train.txt", help='train seqs (line separated).')
     parser.add_argument('--val_split', type=str, default="splits/tartan/tartan_default_val.txt", help='val seqs (line separated)')
-    parser.add_argument('--ddp', action='store_true', help='use multi-gpu')
+    parser.add_argument('--ddp', action='store_true', help='use multi-gpu') #采用多GPU
     parser.add_argument('--gpu_num', type=int, default=1, help='distributed over more gpus')
     parser.add_argument('--port', default="12348", help='free port for master node')
     parser.add_argument('--profiler', action='store_true', help='enable autograd profiler')
@@ -382,7 +383,7 @@ if __name__ == '__main__':
     parser.add_argument('--randaug', action='store_true', help='enable randAug (evs only)')
     
     args = parser.parse_known_args()[0]
-    assert_config(args)
+    assert_config(args) #检查参数是否合法
     print("----------")
     print("Print config")
     print(args)
@@ -403,7 +404,7 @@ if __name__ == '__main__':
     if not os.path.isdir(f'../checkpoints/{args.name}'):
         os.makedirs(f'../checkpoints/{args.name}')
     
-    if args.ddp:
+    if args.ddp:#是否采用多GPU
         mp.spawn(train, nprocs=args.gpu_num, args=(args,))
     else:
         train(0, args)
