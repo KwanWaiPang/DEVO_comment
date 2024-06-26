@@ -72,6 +72,8 @@ python scripts/pp_hku.py --indir=datasets/HKU_dataset/
 
 python evals/eval_evs/eval_hku_evs.py --datapath=/home/gwp/DEVO/datasets/HKU_dataset/ --weights="DEVO.pth" --stride=1 --trials=1 --expname=gwphku
 
+<!-- python evals/eval_evs/eval_hku_evs.py --datapath=/home/gwp/DEVO/datasets/HKU_dataset/ --weights="DEVO.pth" --viz=True --viz_flow=True --expname=gwphku -->
+
 <!-- 由event生成image -->
 python evals/eval_e2v/eval_hku_e2v.py --indir=/home/gwp/DEVO/datasets/HKU_dataset/
 ~~~
