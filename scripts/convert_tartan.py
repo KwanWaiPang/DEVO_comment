@@ -12,6 +12,8 @@ import time
 import sys
 import hdf5plugin
 
+import pdb #打断点用的
+
 H = 480
 W = 640
 NBINS = 5
@@ -159,31 +161,56 @@ def save_voxels_to_h5(voxel, evs_file):
         f.create_dataset("voxel", data=voxel_float16, **hdf5plugin.Blosc(cname='zstd', clevel=4, shuffle=hdf5plugin.Blosc.SHUFFLE))
 
 def convert_sequence(root, stereo="left"):
-    assert stereo == "left" or stereo == "right"
-    upimgs = root.replace(f"image_{stereo}", f"image_{stereo}_up")
-    evs_dir = root.replace(f"image_{stereo}", f"evs_{stereo}")
-    img_dir = os.path.join(root, "imgs")
+    assert stereo == "left" or stereo == "right" #确认选用的为左目或者右目
 
-    if os.path.isfile(os.path.join(root, "converted.txt")):
-        print(f"Already converted {root}")
-        return       
+    imgdir = os.path.join(root, f"image_{stereo}")#获取原始图像的位置路径
+    print("imgdir:",imgdir);
+    # pdb.set_trace()
+    if not os.path.exists(imgdir):#如果原始图像的位置路径不存在
+        # 如果目录中存在fps.txt文件，则说明已经转换过了，直接跳过
+        if os.path.isfile(os.path.join(root, "fps.txt")): 
+            print("no {imgdir}, but already converted with fps.txt");
+        else:
+            print("no {imgdir}, please check !!!!!!!!!!!!!!!!!");
+    else:#如果解压后的原始图像的位置路径存在
+        cmd = f"mv {root}/image_{stereo}/ {root}/imgs/" #移动 image_left 目录到 imgs 目录。
+        os.system(f"{cmd}")#执行命令
+        if os.path.isdir(f"{root}/imgs"): #如果 imgs 目录已经存在，则创建并写入 fps.txt 文件，内容为 10。
+            with open(os.path.join(root, f"{root}/fps.txt"), "w") as f:
+                f.write(f"10\n")
+            print(f"Put fps.txt (10fps) files in subdirs of {imgdir}. Created 'imgs' subdirs")
+
+    upimgs = imgdir.replace(f"image_{stereo}", f"image_{stereo}_up")
+    evs_dir = imgdir.replace(f"image_{stereo}", f"evs_{stereo}")
+    img_dir = os.path.join(root, "imgs")
+    print("upimgs:",upimgs,"\nevs_dir:",evs_dir,"\nimg_dir:",img_dir);
+
+    # pdb.set_trace()
+
+    # if os.path.isfile(os.path.join(root, "converted.txt")):
+    #     print(f"Already converted {root}")
+    #     return       
     print(f"Converting {root} to {upimgs} and {evs_dir}")  
 
+    # 获取gpu
     gpus = tf.config.experimental.list_physical_devices("GPU")
     tf.config.set_logical_device_configuration(
         gpus[0], [tf.config.LogicalDeviceConfiguration(memory_limit=40000)]
     )
 
-    if not os.path.exists(upimgs):
-        cmd = f"python upsampling/upsample.py --input_dir={root} --output_dir={upimgs}"
-        os.system(f"{cmd}")
+    # pdb.set_trace()
+
+    if not os.path.exists(upimgs):#如果不存在upsampled image文件夹，就进行upsampling
+        # cmd = f"python upsampling/upsample.py --input_dir={root} --output_dir={upimgs}"
+        cmd = f"python /home/gwp/rpg_vid2e/upsampling/upsample.py --input_dir={root} --output_dir={upimgs}"
+        os.system(f"{cmd}") #执行命令
         print(f"Upsampled {img_dir} to {upimgs}.")
-    else:
-        num_upimgs = len(glob.glob(os.path.join(upimgs, "imgs/*.png")))
-        if num_upimgs > 0:
-            num_imgs = len(glob.glob(os.path.join(img_dir, "*.png")))
-            assert num_upimgs / 2 > num_imgs
-            if not os.path.isfile(os.path.join(upimgs, "timestamps.txt")):
+    else: #如果存在就remove然后重新创建
+        num_upimgs = len(glob.glob(os.path.join(upimgs, "imgs/*.png")))#获取upsampled image文件夹中的图片数量
+        if num_upimgs > 0: #如果图片数量大于0
+            num_imgs = len(glob.glob(os.path.join(img_dir, "*.png"))) #获取原始图片的数量
+            assert num_upimgs / 2 > num_imgs #检查上采样的图片数量是否是原始图片的两倍
+            if not os.path.isfile(os.path.join(upimgs, "timestamps.txt")): #如果不存在timestamps.txt文件，则说明没有转换过，需要重新转换
                 cmd = f"rm -rf {upimgs}" 
                 os.system(f"{cmd}")
                 print(f"Removed high-fps images {upimgs} - because not complete (not timestamps.txt found). Recreating:")
@@ -191,10 +218,14 @@ def convert_sequence(root, stereo="left"):
                 cmd = f"python upsampling/upsample.py --input_dir={root} --output_dir={upimgs}"
                 os.system(f"{cmd}")
                 print(f"Upsampled {img_dir} to {upimgs}.")
-            else:
+            else:#如果存在timestamps.txt文件，则说明已经转换过了，直接跳过
                 print(f"Already upsampled {num_imgs} images to {num_upimgs}")
+                print("the numeber of upsampled images:",num_upimgs,"the number of original images:",num_imgs)
     time.sleep(5)
 
+    pdb.set_trace() #断点
+
+    # 开始创建事件，确定阈值
     # create events
     C = 0.25
     dC = 0.09
@@ -208,6 +239,7 @@ def convert_sequence(root, stereo="left"):
     os.system(f"{cmd}")
     refractory_period_ns = 0  # TODO: sample refractory?
     
+    # 下面进行ESIM初始化，生成事件
     simulator = esim_torch.ESIM(
         contrast_threshold_neg=Cneg,
         contrast_threshold_pos=Cpos,
@@ -338,76 +370,37 @@ def convert_sequence(root, stereo="left"):
 
 def main():
     parser = argparse.ArgumentParser(description="Raw to png images in dir")
-    parser.add_argument("--dirsfile", help="Input raw dir.", default="/DIRECTORY/test.txt")
+    parser.add_argument("--dirsfile", help="Input raw dir.", default="/DIRECTORY/test.txt")#输入的文件，根据文件内的路径进行处理
+    # 定义一个bool变量，名为--whetherunzip，如果输入了这个参数，则该变量为True，否则为False。
+    parser.add_argument("--whetherunzip", action='store_true', help="Whether to unzip the zip files in the directory.")
 
     args = parser.parse_args()
-    assert ".txt" in args.dirsfile
+    assert ".txt" in args.dirsfile #输入的需要为txt文件
     print(f"config file = {args.dirsfile}")
-
-    # ROOTS = []
-    # for root, dirs, files in os.walk("/DIRECTORY_FOR_TARTAN/tartan/"):
-    #     for name in files:
-    #         if np.any([".zip" in f for f in files]):
-    #             assert "depth_left.zip" in files
-    #             # assert "image_left.zip" in files
-    #             print(os.path.join(root, name))
-                
-    #             img_zip_file = os.path.join(root, 'image_left.zip')
-    #             imgdir = os.path.join(root, 'image_left')
-    #             if not os.path.exists(imgdir):
-    #                 os.makedirs(os.path.join(root, "image_left"), exist_ok=True)
-    #                 cmd = f"unzip {img_zip_file} -d {imgdir}"
-    #                 os.system(f"{cmd}")
-    #                 cmd = f"rm {img_zip_file}" 
-    #                 os.system(f"{cmd}")
-    #                 print(f"Extracted and removed {img_zip_file}.")
-                
-    #             for r, d, fs in os.walk(imgdir):
-    #                 if "pose_left.txt" in fs and "pose_right.txt" in fs:
-    #                     cmd = f"mv {r}/image_left/ {r}/imgs/"
-    #                     if os.path.isdir(f"{r}/imgs"):
-    #                         with open(os.path.join(r, f"{r}/fps.txt"), "w") as f:
-    #                             f.write(f"10\n")
-    #                         assert not os.path.isdir(f"{r}/image_left*")
-    #                         continue
-    #                     os.system(f"{cmd}")
-
-    #                     cmd = f"touch {r}/fps.txt"
-    #                     os.system(f"{cmd}")
-    #                     with open(os.path.join(r, f"{r}/fps.txt"), "w") as f:
-    #                         f.write(f"10\n")
-
-    #             print(f"Put fps.txt (10fps) files in subdirs of {imgdir}. Created 'imgs' subdirs")
-    #             evs_dir = os.path.join(root, 'evs_left')
-    #             os.makedirs(evs_dir, exist_ok=True)
-
-    #             for r, d, fs in os.walk(imgdir):
-    #                 if "pose_left.txt" in fs and "pose_right.txt" in fs:
-    #                     if len(ROOTS) > 0:
-    #                         assert r not in ROOTS
-    #                     ROOTS.append(r)
-        
-    # print(f"Collected all commands and folders")
-
-    # Split Creation
-    # file = open("/DIRECTORY/roots.txt", "w")
-    # for R in ROOTS:
-    #     file.write(R + "\n")
-    # file.close()
-
-    # splits = np.array_split(np.array(ROOTS), 8)
-    # for i, split in enumerate(splits):
-    #     file = open("/DIRECTORY/roots"+f"_{i}.txt", "w")
-    #     for s in split.tolist():
-    #         file.write(s + "\n")
-    #     file.close()
      
-
-    file = open(f"{args.dirsfile}", "r")
-    ROOTS = file.read().splitlines()
+    file = open(f"{args.dirsfile}", "r") #打开文件并读取里面的内容
+    # file.read()：读取文件的全部内容，返回一个包含文件内容的字符串。
+    # .splitlines()：将读取的字符串按照换行符（\n）进行分割，返回一个包含每一行内容的列表。
+    # ROOTS = ...：将分割后的列表赋值给变量 ROOTS。
+    ROOTS = file.read().splitlines() #获取数据目录的位置
     file.close()
     print(f"convert_tartan.py: Processing {len(ROOTS)} dirs: {ROOTS}")
 
+    if args.whetherunzip: #如果输入了--whetherunzip参数,就进行解压
+        root_directory = os.path.dirname(os.path.abspath(args.dirsfile))
+        # 将dirsfile所在目录下所有的zip文件解压到当前目录
+        for root, dirs, files in os.walk(root_directory):#目录路径，子目录，文件列表
+            zip_files = [f for f in files if ".zip" in f and "image" in f]
+            for zip_name in zip_files:
+                # 对所有名字中包含image的zip文件进行解压
+                zip_file = os.path.join(root_directory, zip_name)
+                cmd = f"unzip {zip_file} -d {root_directory}/TartanAir"
+                print("\nrun cmd:",cmd)
+                # os.system(f"{cmd}")
+
+    # pdb.set_trace()
+
+    # 下面是输出一系列系统的信息
     print('A', sys.version)
     print('B', torch.__version__)
     print('C', torch.cuda.is_available())
@@ -423,9 +416,9 @@ def main():
     cmd = "module load cudnn"
     os.system(f"{cmd}")
 
-    for i in range(len(ROOTS)):
+    for i in range(len(ROOTS)):#循环处理每一个序列
         print(f"\n\nconvert_tartan.py: Start processing {ROOTS[i]}")
-        convert_sequence(ROOTS[i], stereo="left")
+        convert_sequence(ROOTS[i], stereo="left") #执行序列的转换处理
         print(f"convert_tartan.py: Finished processing {ROOTS[i]}\n\n")
 
 

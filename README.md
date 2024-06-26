@@ -63,8 +63,21 @@ cd thirdparty/tartanair_tools/
 pip install boto3 #需要安装依赖~
 python download_training.py --output-dir ../../datasets --rgb --depth --only-left
 ~~~
-
 * 采用[vid2e/ESIM](https://github.com/KwanWaiPang/ESIM_comment)实现将video变成event
+* 采用作者提供的转换代码[convert_tartan](scripts/convert_tartan.py)
+~~~
+conda activate vid2e
+<!-- 解压文件 -->
+unzip filename.zip -d foldername
+unzip datasets/abandonedfactory_Easy_image_left.zip -d datasets/TartanAir
+
+<!-- 进行数据的转换，获取event -->
+pip install hdf5plugin
+python scripts/convert_tartan.py --dirsfile=datasets/TartanAir/converted.txt
+
+~~~
+
+# 测试DEVO预训练模型
 * 阅读验证代码[Link](evals\eval_evs\eval_hku_evs.py)
 * 采用[Link](scripts\pp_hku.py)生成输入数据（注意输入应该是文件夹而非具体的rosbag），并采用DEVO预训练模型来测试~
 ~~~
@@ -120,4 +133,16 @@ python scripts/pp_hku.py --indir=/home/gwp/DEVO/datasets/HKU_dataset/
 from evo.tools import plot
 
 ImportError: Cannot load backend 'TkAgg' which requires the 'tk' interactive framework, as 'headless' is currently running
+~~~
+* 代码中打断点
+~~~
+import pdb #打断点用的
+pdb.set_trace()
+
+c：(continue)继续执行
+w：(words)显示当前行的上下文信息
+a：(arguments)打印当前函数的参数列表
+s：(stop)执行当前行，并在第一个可能的时机停止
+n：(next)继续执行直到当前函数的下一行或者函数返回值
+q:退出
 ~~~
