@@ -291,7 +291,7 @@ class eVONet(nn.Module):#一个继承自nn.Module的类，表示一个神经网�
             
         if self.patch_selector == SelectionMethod.SCORER:
             fmap, gmap, imap, patches, ix, scores = self.patchify(images, patches_per_image=patches_per_image, disps=disps)
-        else:
+        else: # Patchifier返回的包括：特征图fmap，patch特征图gmap，patch内部特征图imap，图像块patches，patch的索引index
             fmap, gmap, imap, patches, ix = self.patchify(images, patches_per_image=patches_per_image, disps=disps)
         # 1200 patches / 15 imgs = 80 patches per image
         # ix are image indices, i.e. simply (n_images, 80).flatten() = 15*80 = 1200 = n_patches
@@ -306,7 +306,7 @@ class eVONet(nn.Module):#一个继承自nn.Module的类，表示一个神经网�
         Ps = poses
 
         d = patches[..., 2, p//2, p//2]
-        patches = set_depth(patches, torch.rand_like(d))
+        patches = set_depth(patches, torch.rand_like(d)) #恢复了深度信息
 
         # first 8 images for initialization
         # kk are indixes for (first 8) patches/ixs of shape (1200*8/15)*8 = (640*8) = (5120)
@@ -396,4 +396,4 @@ class eVONet(nn.Module):#一个继承自nn.Module的类，表示一个神经网�
 
         if plot_patches:
             traj.append(plot_data)        
-        return traj
+        return traj #返回的结果

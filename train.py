@@ -103,7 +103,7 @@ def train(rank, args):
     net.cuda()
     P = net.P # patch size (squared)
         
-    if args.ddp:
+    if args.ddp:#如果采用多GPU
         net = DDP(net, device_ids=[rank], find_unused_parameters=False)
 
     # 优化器设置以及学习率调度
@@ -161,7 +161,7 @@ def train(rank, args):
                 so = total_steps < (1000 // args.gpu_num) and (args.checkpoint is None or args.checkpoint == "")
 
                 poses = SE3(poses).inv() # [simon]: this does c2w -> w2c (which dpvo predicts&stores internally)
-                traj = net(images, poses, disps, intrinsics, M=1024, STEPS=args.iters, structure_only=so, plot_patches=DEBUG_PLOT_PATCHES, patches_per_image=args.patches_per_image)
+                traj = net(images, poses, disps, intrinsics, M=1024, STEPS=args.iters, structure_only=so, plot_patches=DEBUG_PLOT_PATCHES, patches_per_image=args.patches_per_image)#返回的结果
                 # list [valid, p_ij, p_ij_gt, poses, poses_gt, kl] of iters (update operator)
                 if DEBUG_PLOT_PATCHES:
                     patch_data = traj.pop()
@@ -174,7 +174,7 @@ def train(rank, args):
                 pose_loss = 0.0 #姿态loss
                 flow_loss = 0.0 #光流loss
                 scores_loss = torch.as_tensor(0.0) #这个是用于patch selector的loss
-                for i, data in enumerate(traj):
+                for i, data in enumerate(traj):#traj就是EVO返回的结果，里面包含了每一次的更新结果，进行遍历
                     if args.patch_selector == SelectionMethod.SCORER:
                         (v, x, y, P1, P2, kl, scores, v_full, x_full, y_full, ba_weights, kk, dij) = data
                     else:
