@@ -72,7 +72,7 @@ def train(rank, args):
     if args.ddp:
         setup_ddp(rank, args)
 
-    # fetch dataset（获取数据集）
+    # fetch dataset（获取数据集的参数）
     if args.evs:
         db = dataset_factory(['tartan_evs'], datapath=args.datapath, n_frames=args.n_frames,
                              fgraph_pickle=args.fgraph_pickle, train_split=args.train_split,
@@ -286,7 +286,7 @@ def train(rank, args):
                                 val_results, val_figures = eval_tartan_evs(None, None, net.module if args.ddp else net, total_steps,
                                                                         args.datapath, args.val_split, return_figure=True, plot=True, rpg_eval=False,
                                                                         scale=args.scale, expname=args.name, **kwargs_net)
-                            else:
+                            else:#用image来验证
                                 from evals.eval_rgb.eval_tartan import evaluate as eval_tartan
                                 val_results, val_figures = eval_tartan(None, None, net.module if args.ddp else net, total_steps,
                                                                    args.datapath, args.val_split, return_figure=True, plot=True, rpg_eval=False,
@@ -364,9 +364,9 @@ if __name__ == '__main__':
     parser.add_argument('--pose_weight', type=float, default=10.0)
     parser.add_argument('--flow_weight', type=float, default=0.1)
     parser.add_argument('--scores_weight', type=float, default=0.05)
-    parser.add_argument('--evs', action='store_true', help='event-based DPVO')
-    parser.add_argument('--e2vid', action='store_true', help='baseline on e2v reconstruction')
-    parser.add_argument('--eval', action='store_true', help='enable eval on TartanAir')
+    parser.add_argument('--evs', action='store_true', help='event-based DPVO')#有--evs的参数输入时，就是这个模式
+    parser.add_argument('--e2vid', action='store_true', help='baseline on e2v reconstruction')#用event生成image
+    parser.add_argument('--eval', action='store_true', help='enable eval on TartanAir') #允许在TartanAir上进行评估
     parser.add_argument('--train_split', type=str, default="splits/tartan/tartan_train.txt", help='train seqs (line separated).')
     parser.add_argument('--val_split', type=str, default="splits/tartan/tartan_default_val.txt", help='val seqs (line separated)')
     parser.add_argument('--ddp', action='store_true', help='use multi-gpu') #采用多GPU

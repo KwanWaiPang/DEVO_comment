@@ -13,6 +13,7 @@ from utils.viz_utils import viz_flow_inference
 fx, fy, cx, cy = [320, 320, 320, 240]
 
 @torch.no_grad()
+# 用image来验证
 def evaluate(config, args, net, train_step=None, datapath="", split_file=None, 
              trials=1, stride=1, plot=False, save=False, return_figure=False, viz=False, timing=False, viz_flow=False, rpg_eval=True, expname="", scale=1.0):
     dataset_name = "tartanair"
