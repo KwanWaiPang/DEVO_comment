@@ -7,7 +7,7 @@ import glob
 import esim_torch
 import torch
 import h5py
-import tensorflow as tf
+# import tensorflow as tf
 import time
 import sys
 import hdf5plugin
@@ -169,9 +169,9 @@ def convert_sequence(root, stereo="left"):
     if not os.path.exists(imgdir):#如果原始图像的位置路径不存在
         # 如果目录中存在fps.txt文件，则说明已经转换过了，直接跳过
         if os.path.isfile(os.path.join(root, "fps.txt")): 
-            print("no {imgdir}, but already converted with fps.txt");
+            print("\033[31m no {imgdir}, but already converted with fps.txt \033[0m");
         else:
-            print("no {imgdir}, please check !!!!!!!!!!!!!!!!!");
+            print("\033[31m no {imgdir}, please check !!!!!!!!!!!!!!!!! \033[0m");
     else:#如果解压后的原始图像的位置路径存在
         cmd = f"mv {root}/image_{stereo}/ {root}/imgs/" #移动 image_left 目录到 imgs 目录。
         os.system(f"{cmd}")#执行命令
@@ -193,10 +193,10 @@ def convert_sequence(root, stereo="left"):
     print(f"Converting {root} to {upimgs} and {evs_dir}")  
 
     # 获取gpu
-    gpus = tf.config.experimental.list_physical_devices("GPU")
-    tf.config.set_logical_device_configuration(
-        gpus[0], [tf.config.LogicalDeviceConfiguration(memory_limit=40000)]
-    )
+    # gpus = tf.config.experimental.list_physical_devices("GPU")
+    # tf.config.set_logical_device_configuration(
+    #     gpus[0], [tf.config.LogicalDeviceConfiguration(memory_limit=40000)]
+    # )
 
     # pdb.set_trace()
 
@@ -219,8 +219,8 @@ def convert_sequence(root, stereo="left"):
                 os.system(f"{cmd}")
                 print(f"Upsampled {img_dir} to {upimgs}.")
             else:#如果存在timestamps.txt文件，则说明已经转换过了，直接跳过
-                print(f"Already upsampled {num_imgs} images to {num_upimgs}")
-                print("the numeber of upsampled images:",num_upimgs,"the number of original images:",num_imgs)
+                print(f"\033[0;31;42m Already upsampled {num_imgs} images to {num_upimgs} \033[0m")
+                print(f"\033[0;31;42m the numeber of upsampled images: {num_upimgs}; the number of original images: {num_imgs} \033[0m")
     time.sleep(5)
 
     pdb.set_trace() #断点
@@ -232,7 +232,7 @@ def convert_sequence(root, stereo="left"):
     Cneg = np.random.uniform(C-dC, C+dC)
     Cpos = np.random.uniform(C-dC, C+dC)
 
-    os.makedirs(evs_dir, exist_ok=True)
+    os.makedirs(evs_dir, exist_ok=True) #创建evs_dir文件夹
     cmd = f"touch {evs_dir}/C.txt"
     os.system(f"{cmd}")
     cmd = f"echo {Cneg} {Cpos} > {evs_dir}/C.txt"
@@ -246,12 +246,19 @@ def convert_sequence(root, stereo="left"):
         refractory_period_ns=refractory_period_ns,  
     )
     
+    # 获取上采样后的图像文件
     image_files = sorted(glob.glob(os.path.join(upimgs, "imgs/*.png")))
+    # 获取时间戳
     tss_ns = (np.loadtxt(os.path.join(upimgs, "timestamps.txt"), dtype=np.float64)*1e9).astype(np.int64)
+    # 将时间戳放到GPU上
     tss_ns = torch.from_numpy(tss_ns).cuda()
+    # 获取原始图像的fps
     fps_imgs_s = np.loadtxt(os.path.join(img_dir, "../fps.txt"), dtype=np.float64).item()
+    # 获取原始图像的数量
     N_images = len(glob.glob(os.path.join(img_dir, "*.png")))
+    # 推算出原始的每张图像的时间戳
     tss_imgs_ns = (np.arange(start=0, stop=N_images)*1e9/fps_imgs_s).astype(np.int64) # [0, N_images-1]
+    # 检查时间戳是否正确
     assert np.abs(tss_ns[0].item() - tss_imgs_ns[0]) < 10000000  # 10ms
     assert np.abs(tss_ns[-1].item() - tss_imgs_ns[-1]) < 10000000 # 10ms
     print(f"dbegin: {tss_ns[0].item() - tss_imgs_ns[0]}, dend: {tss_ns[-1].item() - tss_imgs_ns[-1]}")
@@ -272,18 +279,18 @@ def convert_sequence(root, stereo="left"):
     os.makedirs(os.path.join(evs_dir, "h5"), exist_ok=True)
     os.makedirs(os.path.join(evs_dir, "viz"), exist_ok=True)
     for image_file, ts_ns in zip(image_files, tss_ns):
-        image = cv2.imread(image_file, cv2.IMREAD_GRAYSCALE)
-        log_image = np.log(image.astype("float32") / 255 + 1e-5)
-        log_image = torch.from_numpy(log_image).cuda()
+        image = cv2.imread(image_file, cv2.IMREAD_GRAYSCALE)#读取图像为灰度图
+        log_image = np.log(image.astype("float32") / 255 + 1e-5)#对图像进行log处理
+        log_image = torch.from_numpy(log_image).cuda()#将图像放到GPU上
 
-        sub_events = simulator.forward(log_image, ts_ns)
+        sub_events = simulator.forward(log_image, ts_ns)#生成事件
 
         # for the first image, no events are generated, so this needs to be skipped
         if sub_events is None: # TODO: handle case when no events are generated if img_ct_right > 1
             continue
 
         sub_events = {k: v.cpu() for k, v in sub_events.items()}    
-        num_events += len(sub_events['t'])
+        num_events += len(sub_events['t'])#计算生成的事件数量，用于更新总的事件量
  
         # do something with the events
         # np.savez(os.path.join(outdir, "%010d.npz" % counter), **sub_events)
@@ -329,7 +336,12 @@ def convert_sequence(root, stereo="left"):
         pbar.update(1)
     
     time.sleep(5)
+    # 结束事件的生成
+
+    # 打印一共用于生成事件的图像量以及总的图像数目
     print(f"img_right_counter = {img_right_counter}, N_images = {N_images}")
+
+    # 把事件保存到h5文件中，并且保存可视化的图片
     if len(xs) > 0:
         if len(xs[0]) > 1:
             xs = np.concatenate(np.array(xs, dtype=object)).astype(np.uint16)
@@ -359,11 +371,13 @@ def convert_sequence(root, stereo="left"):
     simulator.reset()
     time.sleep(5)
 
-    # remove upsampled images
+    # remove upsampled images（删掉上采样后的图片，但是这样的话必然导致每次都需要重新生成非常耗费时间）
+    # TODO:如何解决这部分？
     cmd = f"rm -rf {upimgs}"
     os.system(f"{cmd}")
     print(f"Removed high-fps images {upimgs}.")
 
+    # create a file to indicate that the conversion is done（ #创建及修改文件的时间属性 ）
     cmd = f"touch {root}/converted.txt"
     os.system(f"{cmd}")
     return
@@ -401,14 +415,15 @@ def main():
     # pdb.set_trace()
 
     # 下面是输出一系列系统的信息
-    print('A', sys.version)
-    print('B', torch.__version__)
-    print('C', torch.cuda.is_available())
-    print('D', torch.backends.cudnn.enabled)
+    print('sys version', sys.version)
+    print('torch version', torch.__version__)
+    print('cuda', torch.cuda.is_available())
+    print('cudnn', torch.backends.cudnn.enabled)
     device = torch.device('cuda')
-    print('E', torch.cuda.get_device_properties(device))
-    print('F', torch.tensor([1.0, 2.0]).cuda())
+    print('device properties:', torch.cuda.get_device_properties(device))
+    print('while device is using: ', torch.tensor([1.0, 2.0]).cuda())
 
+    # 输出nvcc的版本
     cmd = "nvcc --version"
     os.system(f"{cmd}")
     cmd = "module load cuda/11.2"
@@ -416,7 +431,7 @@ def main():
     cmd = "module load cudnn"
     os.system(f"{cmd}")
 
-    for i in range(len(ROOTS)):#循环处理每一个序列
+    for i in range(len(ROOTS)):#循环处理每一个序列（TODO:需要改为多线程或者分别在多个GPU上处理）
         print(f"\n\nconvert_tartan.py: Start processing {ROOTS[i]}")
         convert_sequence(ROOTS[i], stereo="left") #执行序列的转换处理
         print(f"convert_tartan.py: Finished processing {ROOTS[i]}\n\n")

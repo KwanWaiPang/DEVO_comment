@@ -73,7 +73,7 @@ unzip datasets/abandonedfactory_Easy_image_left.zip -d datasets/TartanAir
 
 <!-- 进行数据的转换，获取event -->
 pip install hdf5plugin
-python scripts/convert_tartan.py --dirsfile=datasets/TartanAir/converted.txt
+python scripts/convert_tartan.py --dirsfile=datasets/converted.txt
 
 ~~~
 
