@@ -299,6 +299,7 @@ def convert_sequence(root, stereo="left"):
         y = sub_events["y"].numpy().astype(np.int16) if sub_events else np.empty(0, dtype=np.int16)
         t = sub_events["t"].numpy().astype(np.int64) if sub_events else np.empty(0, dtype=np.int64)
         p = sub_events["p"].numpy().astype(np.int8) if sub_events else np.empty(0, dtype=np.int8)
+        # 按image的事件累积成voxel
         if t.max() <= tss_imgs_ns[img_right_counter] or img_right_counter == N_images - 1:
             xs.append(x)
             ys.append(y)
@@ -321,10 +322,10 @@ def convert_sequence(root, stereo="left"):
 
             evs_file = os.path.join(evs_dir, "h5", "%010d.h5" % img_right_counter)
             voxel = to_voxel_grid(xs, ys, ts, ps, nb_of_time_bins=NBINS)
-            save_voxels_to_h5(voxel, evs_file)
+            save_voxels_to_h5(voxel, evs_file)#将事件（以voxel的格式）保存到h5文件中
 
             # save_evs_to_h5(xs, ys, ts, ps, evs_file_path=evs_file, Cneg=Cneg, Cpos=Cpos, refractory_period_ns=refractory_period_ns)
-            img = render(xs, ys, ps, H=H, W=W)
+            img = render(xs, ys, ps, H=H, W=W)#将事件渲染成图片（此处的xs是累计成voxel的事件）
             cv2.imwrite(os.path.join(evs_dir, "viz", "%010d.png" % img_right_counter), img)
 
             img_right_counter += 1
@@ -343,7 +344,7 @@ def convert_sequence(root, stereo="left"):
     # 打印一共用于生成事件的图像量以及总的图像数目
     print(f"img_right_counter = {img_right_counter}, N_images = {N_images}")
 
-    # 把事件保存到h5文件中，并且保存可视化的图片
+    # 把事件保存到h5文件中，并且保存可视化的图片（此处为何再做一次？）
     if len(xs) > 0:
         if len(xs[0]) > 1:
             xs = np.concatenate(np.array(xs, dtype=object)).astype(np.uint16)
@@ -359,7 +360,7 @@ def convert_sequence(root, stereo="left"):
             voxel = to_voxel_grid(xs, ys, ts, ps, nb_of_time_bins=NBINS)
             save_voxels_to_h5(voxel, evs_file)
 
-            img = render(xs, ys, ps, H=H, W=W)
+            img = render(xs, ys, ps, H=H, W=W)#将事件渲染成图片（此处的xs是累计成voxel的事件）
             cv2.imwrite(os.path.join(evs_dir, "viz", "%010d.png" % img_right_counter), img)
             img_right_counter += 1
 
