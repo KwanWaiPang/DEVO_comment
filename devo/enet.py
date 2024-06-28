@@ -302,7 +302,7 @@ class eVONet(nn.Module):#一个继承自nn.Module的类，表示一个神经网�
         b, N, c, h, w = fmap.shape
         p = self.P
 
-        patches_gt = patches.clone()
+        patches_gt = patches.clone()#所谓的patches_gt是特征提取的结果，即patches？
         Ps = poses
 
         d = patches[..., 2, p//2, p//2]
@@ -373,6 +373,7 @@ class eVONet(nn.Module):#一个继承自nn.Module的类，表示一个神经网�
             dij = (ii - jj).abs()
             k = (dij > 0) & (dij <= 2) # k.sum() = (close_edges), i.e. > 0 and <= 2
 
+            # 根据pose来投影patch
             if self.patch_selector == SelectionMethod.SCORER:
                 coords_full = pops.transform(Gs, patches, intrinsics, ii, jj, kk) # p_ij (B,close_edges,P,P,2)
                 coords_gt_full, valid_full = pops.transform(Ps, patches_gt, intrinsics, ii, jj, kk, valid=True)
@@ -385,7 +386,7 @@ class eVONet(nn.Module):#一个继承自nn.Module的类，表示一个神经网�
                 coords = pops.transform(Gs, patches, intrinsics, ii[k], jj[k], kk[k]) # p_ij (B,close_edges,P,P,2)
                 coords_gt, valid, _ = pops.transform(Ps, patches_gt, intrinsics, ii[k], jj[k], kk[k], valid=True)
                 
-                traj.append((valid, coords, coords_gt, Gs[:,:n], Ps[:,:n], kl))
+                traj.append((valid, coords, coords_gt, Gs[:,:n], Ps[:,:n], kl))#GS为pose
             
             if plot_patches:
                 coords_gt = pops.transform(Ps, patches_gt, intrinsics, ii, jj, kk)

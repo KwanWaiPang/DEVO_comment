@@ -180,8 +180,9 @@ def train(rank, args):
                     else:
                         (v, x, y, P1, P2, kl) = data
                     valid = (v > 0.5).reshape(-1) 
-                    e = (x - y).norm(dim=-1) # residual (p_ij - p_ij_gt)
+                    e = (x - y).norm(dim=-1) # x=coords, y=coords_gt，用于构建残差residual (p_ij - p_ij_gt)
                     ef = e.reshape(-1, P**2)[valid].min(dim=-1).values # e.shape: (B*edges,P^2) -> (B*edges)
+                    # P = net.P # patch size (squared)只是patch的大小？
                     flow_loss = ef.mean()
                     
                     start_scorer = (i == (len(traj)-1)) and (total_steps // args.gpu_num) >= 1e+4
