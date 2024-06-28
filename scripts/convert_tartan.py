@@ -262,6 +262,7 @@ def convert_sequence(root, stereo="left"):
     assert np.abs(tss_ns[0].item() - tss_imgs_ns[0]) < 10000000  # 10ms
     assert np.abs(tss_ns[-1].item() - tss_imgs_ns[-1]) < 10000000 # 10ms
     print(f"dbegin: {tss_ns[0].item() - tss_imgs_ns[0]}, dend: {tss_ns[-1].item() - tss_imgs_ns[-1]}")
+    print(f"begin time: {tss_ns[0].item() }, end time: {tss_ns[-1].item() }")
 
     # save img_tss and img_up_tss
     cmd = f"cp {upimgs}/timestamps.txt {evs_dir}/tss_upimgs_sec.txt"
@@ -337,6 +338,7 @@ def convert_sequence(root, stereo="left"):
     
     time.sleep(5)
     # 结束事件的生成
+    pdb.set_trace()
 
     # 打印一共用于生成事件的图像量以及总的图像数目
     print(f"img_right_counter = {img_right_counter}, N_images = {N_images}")
@@ -371,11 +373,13 @@ def convert_sequence(root, stereo="left"):
     simulator.reset()
     time.sleep(5)
 
-    # remove upsampled images（删掉上采样后的图片，但是这样的话必然导致每次都需要重新生成非常耗费时间）
-    # TODO:如何解决这部分？
-    cmd = f"rm -rf {upimgs}"
-    os.system(f"{cmd}")
-    print(f"Removed high-fps images {upimgs}.")
+    pdb.set_trace()
+
+    # # remove upsampled images（删掉上采样后的图片，但是这样的话必然导致每次都需要重新生成非常耗费时间）
+    # # TODO:如何解决这部分？
+    # cmd = f"rm -rf {upimgs}"
+    # os.system(f"{cmd}")
+    # print(f"Removed high-fps images {upimgs}.")
 
     # create a file to indicate that the conversion is done（ #创建及修改文件的时间属性 ）
     cmd = f"touch {root}/converted.txt"
