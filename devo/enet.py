@@ -116,6 +116,9 @@ class Patchifier(nn.Module):
 
     def __event_gradient(self, images):
         images = images.sum(dim=2) # sum over bins
+        # 对于形状为为 (batch_size, height, width, channels) 的四维数组
+        # ... 是一个省略号，表示任意数量的前置维度（例如，批次维度和通道维度）。
+        # 求event的梯度。这部分跟image是一样的处理
         dx = images[...,:-1,1:] - images[...,:-1,:-1]
         dy = images[...,1:,:-1] - images[...,:-1,:-1]
         g = torch.sqrt(dx**2 + dy**2)
@@ -135,7 +138,7 @@ class Patchifier(nn.Module):
 
         # Patch selection
         # 原本的DPVO中基于梯度来对patch进行选择，而event改为用一个卷积网络进行patch selector
-        if self.patch_selector == SelectionMethod.GRADIENT:
+        if self.patch_selector == SelectionMethod.GRADIENT:#根据梯度选择patch（虽然类似image的，但不完全一样）
             # bias patch selection towards regions with high gradient
             g = self.__event_gradient(images) # gradient map (b,n_frames,h/4-1,w/4-1)
             
@@ -148,7 +151,7 @@ class Patchifier(nn.Module):
                         
             x = x.clamp(min=1, max=w-2)
             y = y.clamp(min=1, max=h-2)
-        elif self.patch_selector == SelectionMethod.RANDOM:
+        elif self.patch_selector == SelectionMethod.RANDOM:#随机选择patch，跟DPVO中的一样
             # random sampling
             x = torch.randint(1, w-1, size=[n, patches_per_image], device="cuda")
             y = torch.randint(1, h-1, size=[n, patches_per_image], device="cuda")
@@ -157,6 +160,7 @@ class Patchifier(nn.Module):
             scores = torch.sigmoid(scores) #对输入的数据进行sigmoid处理，将其转换为0-1之间的数值，作为patch的重要性评分
             
             if self.training: #如果是在训练的阶段
+                # 先随机选择patch，然后根据patch的重要性评分进行排序
                 x = torch.randint(0, w-2, size=[n, 3*patches_per_image], device="cuda")
                 y = torch.randint(0, h-2, size=[n, 3*patches_per_image], device="cuda")
 
