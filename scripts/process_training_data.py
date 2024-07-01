@@ -277,16 +277,19 @@ def convert_sequence(root, device, stereo="left"):
         os.makedirs(os.path.join(evs_dir, "viz"), exist_ok=True)
 
         # 定义视频保存路径和视频编码器
-        event_video_path = os.path.join(root, "events_video.avi")
+        # event_video_path = os.path.join(root, "events_video.avi")
         fourcc = cv2.VideoWriter_fourcc(*'MJPG')  # 或者使用其他编码器
-        event_video_writer = cv2.VideoWriter(event_video_path, fourcc, fps_imgs_s, (W, H))  # fps_imgs_s是帧率
-        image_video_path = os.path.join(root, "image_video.avi")
-        image_video_writer = cv2.VideoWriter(image_video_path, fourcc, fps_imgs_s, (W, H),isColor=0)#图像用了灰度图 
+        # event_video_writer = cv2.VideoWriter(event_video_path, fourcc, fps_imgs_s, (W, H))  # fps_imgs_s是帧率
+        # image_video_path = os.path.join(root, "image_video.avi")
+        # image_video_writer = cv2.VideoWriter(image_video_path, fourcc, fps_imgs_s, (W, H),isColor=0)#图像用了灰度图 
+
+        IE_video_path = os.path.join(root, "combined_image_event_video.avi")
+        combined_video_writer = cv2.VideoWriter(IE_video_path, fourcc, fps_imgs_s, (W * 2, H))  # 合并后的视频宽度是两个图像宽度之和
 
         # 逐个处理每一张图像
         for image_file, ts_ns in zip(image_files, tss_ns):
             image = cv2.imread(image_file, cv2.IMREAD_GRAYSCALE)#读取图像为灰度图
-            image_video_writer.write(image)#将图像写入视频
+            # image_video_writer.write(image)#将图像写入视频
             log_image = np.log(image.astype("float32") / 255 + 1e-5)#对图像进行log处理
             log_image = torch.from_numpy(log_image).cuda()#将图像放到GPU上
 
@@ -340,7 +343,12 @@ def convert_sequence(root, device, stereo="left"):
                 cv2.imwrite(os.path.join(evs_dir, "viz", "%010d.png" % img_right_counter), img)
 
                 # 将图像写入视频
-                event_video_writer.write(img)
+                # event_video_writer.write(img)
+                # 创建一个新的图像，将image放在左侧，img放在右侧
+                combined_image = np.zeros((H, W * 2,3), dtype=np.uint8)
+                combined_image[:, :W] = cv2.merge([image, image, image])  # 左侧放原始图像(将灰度图复制到三个通道)
+                combined_image[:, W:] = img  # 右侧放事件图像
+                combined_video_writer.write(combined_image)  # 将合并后的图像写入视频
 
                 img_right_counter += 1
                 xs = [x[idx:]]
