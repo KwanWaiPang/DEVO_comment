@@ -198,10 +198,10 @@ def convert_sequence(root, device, stereo="left"):
 
     if not os.path.exists(imgdir):#如果原始图像的位置路径不存在
         # 如果目录中存在fps.txt文件，则说明已经转换过了，直接跳过
-        if os.path.isfile(os.path.join(root, "fps.txt")): 
-            print("\033[31m no {imgdir}, but already converted with fps.txt \033[0m");
+        if os.path.exists(os.path.join(root, "imgs")): 
+            print("\033[31m no {imgdir} but have {root}/imgs/, it should be okay \033[0m");
         else:
-            print("\033[31m no {imgdir}, please check !!!!!!!!!!!!!!!!! \033[0m");
+            print("\033[31m no {imgdir} and {root}/imgs/, please check !!!!!!!!!!!!!!!!! \033[0m");
     else:#如果解压后的原始图像的位置路径存在，则将它改为imgs文件夹
         cmd = f"mv {root}/image_{stereo}/ {root}/imgs/" #移动 image_left 目录到 imgs 目录。
         os.system(f"{cmd}")#执行命令
@@ -227,7 +227,7 @@ def convert_sequence(root, device, stereo="left"):
     os.makedirs(evs_dir, exist_ok=True) #创建evs_dir文件夹
     cmd = f"touch {evs_dir}/Theshold_of_event_generation.txt"
     os.system(f"{cmd}")
-    cmd = f"echo {Cneg} {Cpos} > {evs_dir}/Theshold_of_event_generation.txt"
+    cmd = f"echo contrast_threshold_neg:{Cneg}; contrast_threshold_pos:{Cpos} > {evs_dir}/Theshold_of_event_generation.txt"
     os.system(f"{cmd}")
     refractory_period_ns = 0  # TODO: sample refractory?
 
@@ -281,7 +281,7 @@ def convert_sequence(root, device, stereo="left"):
         fourcc = cv2.VideoWriter_fourcc(*'MJPG')  # 或者使用其他编码器
         event_video_writer = cv2.VideoWriter(event_video_path, fourcc, fps_imgs_s, (W, H))  # fps_imgs_s是帧率
         image_video_path = os.path.join(root, "image_video.avi")
-        image_video_writer = cv2.VideoWriter(image_video_path, fourcc, fps_imgs_s, (W, H)) 
+        image_video_writer = cv2.VideoWriter(image_video_path, fourcc, fps_imgs_s, (W, H),isColor=0)#图像用了灰度图 
 
         # 逐个处理每一张图像
         for image_file, ts_ns in zip(image_files, tss_ns):
@@ -455,7 +455,7 @@ def main():
     #     convert_sequence(ROOTS[i], stereo="left") #执行序列的转换处理
     #     print(f"convert_tartan.py: Finished processing {ROOTS[i]}\n\n")
     
-    pdb.set_trace()
+    # pdb.set_trace()
     # 改为多线程处理，每个线程用一个GPU
     threads = []
     for i in range(len(ROOTS)):

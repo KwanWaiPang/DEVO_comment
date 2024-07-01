@@ -76,7 +76,8 @@ pip install hdf5plugin
 python scripts/convert_tartan.py --dirsfile=datasets/converted.txt
 
 python scripts/process_training_data.py --dirsfile=datasets/converted.txt
-
+<!-- 将数据移动到文件夹 -->
+sudo cp -r 文件夹名 /media/Data/DVO
 ~~~
 
 # 测试DEVO预训练模型
