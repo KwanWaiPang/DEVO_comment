@@ -194,7 +194,7 @@ def convert_sequence(root, device, stereo="left"):
 
     assert stereo == "left" #确认选用的为左目序列
     imgdir = os.path.join(root, f"image_{stereo}")#获取原始图像的位置路径
-    print("imgdir:",imgdir);
+    # print("imgdir:",imgdir);
 
     if not os.path.exists(imgdir):#如果原始图像的位置路径不存在
         # 如果目录中存在fps.txt文件，则说明已经转换过了，直接跳过
@@ -409,6 +409,7 @@ def convert_sequence(root, device, stereo="left"):
 
 def process_individual_gpu(root, device_id):
     device = f'cuda:{device_id}' #指定使用的GPU
+    print(f"\033[0;31;42m Processing {root} on {device} \033[0m")
     convert_sequence(root, device) #执行序列的转换处理
 
 def main():
@@ -466,14 +467,26 @@ def main():
     # pdb.set_trace()
     # 改为多线程处理，每个线程用一个GPU
     threads = []
-    for i in range(len(ROOTS)):
-        # 每个线程分配一个GPU
-        t = threading.Thread(target=process_individual_gpu, args=(ROOTS[i], i % 4))
-        threads.append(t)
-        t.start()
+    # for i in range(len(ROOTS)):
+    #     # 每个线程分配一个GPU
+    #     t = threading.Thread(target=process_individual_gpu, args=(ROOTS[i], i % 4))
+    #     threads.append(t)
+    #     t.start()
 
-    for t in threads:
-        t.join()
+    # for t in threads:
+    #     t.join()
+
+    num_gpus = 4
+    for i in range(0, len(ROOTS), num_gpus):
+        batch = ROOTS[i:i + num_gpus]  # 每次取4个序列
+        for j, root in enumerate(batch):
+            t = threading.Thread(target=process_individual_gpu, args=(root, j))
+            threads.append(t)
+            t.start()
+
+        for t in threads:
+            t.join()
+        threads = []  # 清空线程列表，开始新一轮处理(但这样每次只是以num_gpus为组处理)
 
 
 

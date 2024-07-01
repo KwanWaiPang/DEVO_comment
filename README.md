@@ -77,7 +77,9 @@ python scripts/convert_tartan.py --dirsfile=datasets/converted.txt
 
 python scripts/process_training_data.py --dirsfile=datasets/converted.txt
 <!-- 将数据移动到文件夹 -->
-sudo cp -r 文件夹名 /media/Data/DVO
+复制：cp -r 文件夹名 /media/Data/DVO
+移动：mv 文件夹名 /media/Data/DVO
+删除：rm -r 文件夹名
 ~~~
 
 # 测试DEVO预训练模型
