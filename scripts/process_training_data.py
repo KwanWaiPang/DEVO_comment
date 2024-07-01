@@ -486,7 +486,7 @@ def main():
 
         for t in threads:
             t.join()
-        threads = []  # 清空线程列表，开始新一轮处理(但这样每次只是以num_gpus为组处理)
+        threads = []  # 清空线程列表，开始新一轮处理(但这样每次只是以num_gpus为组处理) 
 
 
 
