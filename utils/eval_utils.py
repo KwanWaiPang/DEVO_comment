@@ -282,24 +282,30 @@ def write_res_table(outfolder, res_str, scene_name, trial):
     f.write("\n")
     f.close()
 
-
+# 下面是采用EVO的方法来获得精度评估
 def ate_real(traj_ref, tss_ref_us, traj_est, tstamps):
+    # 关于PoseTrajectory3D参考https://github.com/MichaelGrupp/evo/blob/63ea6f087bf6aca9e9feef193c605b0489cca4cd/evo/core/trajectory.py#L372
+    # 获得的是pose+timestamp的数据结构。xyz+wxyz+timestamp
     evoGT = PoseTrajectory3D(
         positions_xyz=traj_ref[:,:3],
         orientations_quat_wxyz=traj_ref[:,3:], # TODO wrong format: EVO uses wxyz, we use xyzw
         timestamps=tss_ref_us/1e6)
 
     evoEst = PoseTrajectory3D(
-        positions_xyz=traj_est[:,:3],
-        orientations_quat_wxyz=traj_est[:,3:], # TODO wrong format: EVO uses wxyz, we use xyzw
-        timestamps=tstamps/1e6)
+        positions_xyz=traj_est[:,:3],#输入位姿的前三个元素是位置
+        orientations_quat_wxyz=traj_est[:,3:], #后四个元素，也就是四元数 TODO wrong format: EVO uses wxyz, we use xyzw
+        timestamps=tstamps/1e6)#时间戳转换为秒
 
     if traj_ref.shape == traj_est.shape:
         assert np.all(tss_ref_us == tstamps)
         return ate(traj_ref, traj_est, tstamps)*100, evoGT, evoEst
     
+    # The metrics require the trajectories to be associated via matching timestamps:（进行时间对齐）
+    # 参考资料：https://github.com/MichaelGrupp/evo/blob/63ea6f087bf6aca9e9feef193c605b0489cca4cd/evo/core/sync.py#L67
     evoGT, evoEst = sync.associate_trajectories(evoGT, evoEst, max_diff=1)
+    # （absolute pose error ）
     ape_trans = main_ape.ape(evoGT, evoEst, pose_relation=metrics.PoseRelation.translation_part, align=True, correct_scale=True)
+    # 从结果中采用rmse的值，乘以100，得到cm单位的误差
     evoATE = ape_trans.stats["rmse"]*100
     return evoATE, evoGT, evoEst
 
@@ -324,21 +330,23 @@ def log_results(data, hyperparam, all_results, results_dict_scene, figures,
     # all_results: list of all raw_results
 
     # unpack data
-    traj_GT, tss_GT_us, traj_est, tss_est_us = data
-    train_step, net, dataset_name, scene, trial, cfg, args = hyperparam
+    traj_GT, tss_GT_us, traj_est, tss_est_us = data #获取GT轨迹、GT时间戳、估计轨迹、估计时间戳
+    train_step, net, dataset_name, scene, trial, cfg, args = hyperparam #获取超参：训练步数、网络、数据集名称、场景名称、试验次数、配置文件、参数
 
     # create folders
     if train_step is None:
-        if isinstance(net, str) and ".pth" in net:
+        if isinstance(net, str) and ".pth" in net: #如果 net 是一个字符串并且包含 ".pth" 文件扩展名
             train_step = os.path.basename(net.split(".")[0])
         else:
             train_step = -1
+    # 如果 scene 包含 "/P0"，那么将 scene 按照 "/" 分割，取从第二个元素开始的所有部分，用 "_" 连接，然后转换为标题格式（每个单词首字母大写）。如果 scene 不包含 "/P0"，直接将 scene 转换为标题格式。
     scene_name = '_'.join(scene.split('/')[1:]).title() if "/P0" in scene else scene.title()
     if outdir is None:
         outdir = "results"
+    # 创建输出文件夹
     outfolder = make_outfolder(outdir, dataset_name, expname, scene_name, trial, train_step, stride, calib1_eds, camID_tumvie)
 
-    # save cfg & args to outfolder
+    # save cfg & args to outfolder（将cfg与args的参数都保存到文件中）
     if cfg is not None:
         with open(f"{outfolder}/cfg.yaml", 'w') as f:
             yaml.dump(cfg, f, default_flow_style=False)
@@ -347,7 +355,7 @@ def log_results(data, hyperparam, all_results, results_dict_scene, figures,
             with open(f"{outfolder}/args.yaml", 'w') as f:
                 yaml.dump(vars(args), f, default_flow_style=False)
 
-    # compute ATE
+    # compute ATE（计算ATE，Absolute Trajectory Error误差）
     ate_score, evoGT, evoEst = ate_real(traj_GT, tss_GT_us, traj_est, tss_est_us)
     all_results.append(ate_score)
     results_dict_scene[scene].append(ate_score)

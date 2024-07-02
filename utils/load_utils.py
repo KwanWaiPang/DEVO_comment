@@ -610,14 +610,14 @@ def load_ecd_gt(path, skiprows=0):
 
     return tss_gt_us, traj_ref[:, 1:]
 
-def load_gt_us(path, skiprows=0):
+def load_gt_us(path, skiprows=0): #skiprows: 可选参数，默认为0，用于指定在读取数据文件时跳过的行数。
     traj_ref = np.loadtxt(path, delimiter=" ", skiprows=skiprows)
-    tss_gt_us = traj_ref[:, 0].copy() 
-    assert np.all(tss_gt_us == sorted(tss_gt_us))
-    assert traj_ref.shape[0] > 0
-    assert traj_ref.shape[1] == 8
+    tss_gt_us = traj_ref[:, 0].copy() #提取第一列，也就是时间戳
+    assert np.all(tss_gt_us == sorted(tss_gt_us)) #验证 tss_gt_us 数组中的时间戳是按升序排列的。如果不是，则会引发报错
+    assert traj_ref.shape[0] > 0 #确保数据矩阵有至少一行。
+    assert traj_ref.shape[1] == 8 #确保数据矩阵有8列。
 
-    return tss_gt_us, traj_ref[:, 1:]
+    return tss_gt_us, traj_ref[:, 1:] #数据矩阵中除了第一列（时间戳）之外的其余部分。
 
 def read_ecd_tss(p, idx=0):
     f = open(p, "r")

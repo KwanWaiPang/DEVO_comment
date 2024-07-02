@@ -46,6 +46,7 @@ def evaluate(config, args, net, train_step=None, datapath="", split_file=None,
             # do evaluation （进行验证）
             data = (traj_hf, tss_traj_us, traj_est, tstamps)
             hyperparam = (train_step, net, dataset_name, scene, trial, cfg, args)
+            # 通过log_results函数来记录结果(用evo评估定位的精度)
             all_results, results_dict_scene, figures, outfolder = log_results(data, hyperparam, all_results, results_dict_scene, figures, 
                                                                    plot=plot, save=save, return_figure=return_figure, stride=stride,
                                                                    expname=args.expname)
