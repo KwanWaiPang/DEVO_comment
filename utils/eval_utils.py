@@ -361,10 +361,12 @@ def log_results(data, hyperparam, all_results, results_dict_scene, figures,
     results_dict_scene[scene].append(ate_score)
     
     # following https://github.com/arclab-hku/Event_based_VO-VIO-SLAM/issues/5
+    # 这里的evoGT和evoEst算是重复获取的，因为在ate_real函数中已经获取了一次
     evoGT = make_evo_traj(traj_GT, tss_GT_us)
     evoEst = make_evo_traj(traj_est, tss_est_us)
     gtlentraj = evoGT.get_infos()["path length (m)"]
-    evoGT, evoEst = sync.associate_trajectories(evoGT, evoEst, max_diff=1)
+    evoGT, evoEst = sync.associate_trajectories(evoGT, evoEst, max_diff=1) #重复步骤，时间对齐
+    # copy.deepcopy深拷贝是将这个对象的所有内容遍历拷贝过来了，相当于跟原来没关系了，所以如果你这时候修改原来对象的值跟他没关系了，不会随之更改。
     ape_trans = main_ape.ape(copy.deepcopy(evoGT), copy.deepcopy(evoEst), pose_relation=metrics.PoseRelation.translation_part, align=True, correct_scale=True)
     MPE = ape_trans.stats["mean"] / gtlentraj * 100
     evoATE = ape_trans.stats["rmse"]*100

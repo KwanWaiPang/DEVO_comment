@@ -224,12 +224,13 @@ def train(rank, args):
                     s = kabsch_umeyama(t2[0], t1[0]).detach().clamp(max=10.0) # how to handle batch greater than 1?
                     P1 = P1.scale(s.view(1, 1))
 
+                    # 相对位姿变换~
                     dP = P1[:,ii].inv() * P1[:,jj] # predicted poses from frame i to j (G_ij)
                     dG = P2[:,ii].inv() * P2[:,jj] # gt poses from frame i to j (T_ij)
 
                     e1 = (dP * dG.inv()).log() # poses loss for each pair of frames
                     tr = e1[...,0:3].norm(dim=-1) # tx ty tz
-                    ro = e1[...,3:6].norm(dim=-1) # qx qy qz
+                    ro = e1[...,3:6].norm(dim=-1) # qx qy qz （忽略了W，这个rotation loss有问题）
 
                     loss += args.flow_weight * flow_loss
                     loss += args.scores_weight * scores_loss

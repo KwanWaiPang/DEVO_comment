@@ -40,7 +40,7 @@ def evaluate(config, args, net, train_step=None, datapath="", split_file=None,
                                           iterator=hku_evs_iterator(datapath_val, side=side, stride=stride, timing=timing, H=H, W=W),
                                           timing=timing, H=H, W=W, viz_flow=viz_flow)
 
-            # load  traj（这应该是获取gt trajectory的值）
+            # load  traj（这应该是获取gt trajectory的值,从txt文件中读取）
             tss_traj_us, traj_hf = load_gt_us(os.path.join(datapath_val, f"gt_stamped_{side}.txt"))
 
             # do evaluation （进行验证）
