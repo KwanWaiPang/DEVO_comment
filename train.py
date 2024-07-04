@@ -198,6 +198,7 @@ def train(rank, args):
                         # scorer (flow only)
                         # scores_loss = (scores.view(-1)[kk] * e_full).mean()
                         # scorer (flow + ba)
+                        # scores loss是按照一定规则由网络输出的scores计算出来的
                         scores_loss = ((-0.5*(ba_weights.view(-1,2)[valid_full].mean(dim=-1)).log() + 1) * scores.view(-1)[kk] * e_full).mean()
                         
                         scores = torch.max(scores, torch.as_tensor(1e-6))  
@@ -221,6 +222,7 @@ def train(rank, args):
                     t1 = P1.matrix()[...,:3,3] # predicted translation # TODO with detach()?
                     t2 = P2.matrix()[...,:3,3] # gt translation # TODO with detach()?
 
+                    # compute optimal scaling
                     s = kabsch_umeyama(t2[0], t1[0]).detach().clamp(max=10.0) # how to handle batch greater than 1?
                     P1 = P1.scale(s.view(1, 1))
 
