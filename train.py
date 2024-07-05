@@ -230,9 +230,10 @@ def train(rank, args):
                     dP = P1[:,ii].inv() * P1[:,jj] # predicted poses from frame i to j (G_ij)
                     dG = P2[:,ii].inv() * P2[:,jj] # gt poses from frame i to j (T_ij)
 
+                    # 注意此处log已经从李代数转换到欧拉角
                     e1 = (dP * dG.inv()).log() # poses loss for each pair of frames
                     tr = e1[...,0:3].norm(dim=-1) # tx ty tz
-                    ro = e1[...,3:6].norm(dim=-1) # qx qy qz （忽略了W，这个rotation loss有问题）
+                    ro = e1[...,3:6].norm(dim=-1) # qx qy qz （已经是欧拉角，而不是四元数）
 
                     loss += args.flow_weight * flow_loss
                     loss += args.scores_weight * scores_loss
