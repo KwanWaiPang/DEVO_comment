@@ -98,6 +98,7 @@ python evals/eval_e2v/eval_hku_e2v.py --indir=/home/gwp/DEVO/datasets/HKU_datase
 
 <p align="center">
   <img width="90%" src="assets/HKU_aggressive_small_flip.png">
+  <img width="90%" src="assets/HKU_aggressive_translation.png">
 </p>
 
 * 采用rpg数据集测试
