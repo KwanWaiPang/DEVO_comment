@@ -283,7 +283,7 @@ def convert_sequence(root, device, stereo="left"):
         # image_video_path = os.path.join(root, "image_video.avi")
         # image_video_writer = cv2.VideoWriter(image_video_path, fourcc, fps_imgs_s, (W, H),isColor=0)#图像用了灰度图 
 
-        IE_video_path = os.path.join(root, "combined_image_event_video.avi")
+        IE_video_path = os.path.join(root, "combined_image_event_video.avi") #TODO 需要改名字！！！
         combined_video_writer = cv2.VideoWriter(IE_video_path, fourcc, fps_imgs_s, (W * 2, H))  # 合并后的视频宽度是两个图像宽度之和
 
         # 逐个处理每一张图像
