@@ -1,0 +1,22 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "pp_davis240c",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "scripts/pp_davis240c.py",
+            "console": "integratedTerminal",
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "2"
+            },
+            "args":[
+                "--indir=/media/lfl-data2/davis240c/",
+            ]
+
+        }
+    ]
+}
