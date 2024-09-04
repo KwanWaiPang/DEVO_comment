@@ -38,7 +38,9 @@ def write_imu(imu, outfile):
     with open(outfile, 'w') as f:
         f.write("#timestamp [ns],w_RS_S_x [rad s^-1],w_RS_S_y [rad s^-1],w_RS_S_z [rad s^-1],a_RS_S_x [m s^-2],a_RS_S_y [m s^-2],a_RS_S_z [m s^-2]\n")
         for pose in imu:
-            f.write(f"{pose} ")
+            # f.write(f"{pose} ")
+            #将 pose 列表中的每个元素转换为字符串并以逗号连接成一个字符串，从而避免输出带有方括号的列表形式。
+            f.write(",".join(map(str, pose)))
             f.write("\n")
 
 
