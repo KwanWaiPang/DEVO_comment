@@ -11,7 +11,7 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 import tqdm as tqdm
 import h5py
-from utils.bag_utils import read_H_W_from_bag, read_tss_us_from_rosbag, read_images_from_rosbag, read_evs_from_rosbag, read_calib_from_bag, read_t0us_evs_from_rosbag, read_poses_from_rosbag
+from utils.bag_utils import read_H_W_from_bag, read_tss_us_from_rosbag, read_images_from_rosbag, read_evs_from_rosbag, read_calib_from_bag, read_t0us_evs_from_rosbag, read_poses_from_rosbag, read_imu_from_rosbag
 
 # 处理服务器中evo的可视化问题
 import evo
@@ -32,6 +32,13 @@ def write_gt_stamped(poses, tss_us_gt, outfile):
                     f.write(f"{p} ")
                 else:
                     f.write(f"{p}")
+            f.write("\n")
+
+def write_imu(imu, outfile):
+    with open(outfile, 'w') as f:
+        f.write("#timestamp [ns],w_RS_S_x [rad s^-1],w_RS_S_y [rad s^-1],w_RS_S_z [rad s^-1],a_RS_S_x [m s^-2],a_RS_S_y [m s^-2],a_RS_S_z [m s^-2]\n")
+        for pose in imu:
+            f.write(f"{pose} ")
             f.write("\n")
 
 
@@ -143,33 +150,37 @@ def process_dirs(indirs, side="left", DELTA_MS=None):
 
         #保存IMU数据
         imu_topic = "/dvs/imu"
-        imu_out_file  = open(os.path.join(indir, f"imu_data.csv"), 'w') 
-        imu_out_file.write("#timestamp [ns],w_RS_S_x [rad s^-1],w_RS_S_y [rad s^-1],w_RS_S_z [rad s^-1],a_RS_S_x [m s^-2],a_RS_S_y [m s^-2],a_RS_S_z [m s^-2]\n")
-        for topic,msg,t in bag.read_messages():
-            if topic == imu_topic:
-                acc_x = msg.linear_acceleration.x
-                acc_y = msg.linear_acceleration.y
-                acc_z = msg.linear_acceleration.z
-                w_x   = msg.angular_velocity.x
-                w_y   = msg.angular_velocity.y
-                w_z   = msg.angular_velocity.z
-                # timeimu = msg.header.stamp
-                timeimu = "%.0f" % (msg.header.stamp.to_sec()*1000000000) 
-                imu_out_file.write(timeimu+","+str(w_x)+","+str(w_y)+","+str(w_z)+","+str(acc_x)+","+str(acc_y)+","+str(acc_z)+"\n")
-                # all_imu.append([timeimu,w_x,w_y,w_z,acc_x,acc_y,acc_z])
+        all_imu=read_imu_from_rosbag(bag, imu_topic)
+        write_imu(all_imu,os.path.join(indir, f"imu_data.csv"))
+        # # imu_out_file  = open(os.path.join(indir, f"imu_data.csv"), 'w') 
+        # # imu_out_file.write("#timestamp [ns],w_RS_S_x [rad s^-1],w_RS_S_y [rad s^-1],w_RS_S_z [rad s^-1],a_RS_S_x [m s^-2],a_RS_S_y [m s^-2],a_RS_S_z [m s^-2]\n")
+        # for topic, msg, t in bag_data.read_messages(imu_topic):
+        #     acc_x = msg.linear_acceleration.x
+        #     acc_y = msg.linear_acceleration.y
+        #     acc_z = msg.linear_acceleration.z
+        #     w_x   = msg.angular_velocity.x
+        #     w_y   = msg.angular_velocity.y
+        #     w_z   = msg.angular_velocity.z
+        #     # timeimu = msg.header.stamp
+        #     timeimu = "%.0f" % (msg.header.stamp.to_sec()*1000000000) 
+        #     # imu_out_file.write(timeimu+","+str(w_x)+","+str(w_y)+","+str(w_z)+","+str(acc_x)+","+str(acc_y)+","+str(acc_z)+"\n")
+        #     # all_imu.append([timeimu,w_x,w_y,w_z,acc_x,acc_y,acc_z])
+        # # imu_out_file.close()#要关闭文件
 
         # TODO: write events (and also substract t0_evs)
         evs = read_evs_from_rosbag(bag, topics[evtopic_idx], H=H, W=W)#读取events
-        f = open(os.path.join(indir, f"evs_{side}.txt"), 'w')#将events保存到txt文件中
-        for i in range(evs.shape[0]):
-            f.write(f"{(evs[i, 2] - t0_us):.04f} {int(evs[i, 0])} {int(evs[i, 1])} {int(evs[i, 3])}\n")
-        f.close()
+        # f = open(os.path.join(indir, f"evs_{side}.txt"), 'w')#将events保存到txt文件中
+        # for i in range(evs.shape[0]):
+        #     f.write(f"{(evs[i, 2] - t0_us):.04f} {int(evs[i, 0])} {int(evs[i, 1])} {int(evs[i, 3])}\n")
+        # f.close()
 
         for ev in evs:
             ev[2] -= t0_us #减去起始时间,获得的就是相对时间
         h5outfile = os.path.join(indir, f"evs_{side}.h5")
         write_evs_arr_to_h5(evs, h5outfile)#将events保存到h5文件中
+
         distcoeffs=dist_coeffs#获取失真参数
+        
         rectify_map, K_new_evs = compute_rmap_vector(Kdist, distcoeffs, indir, side, H=H, W=W)
         assert np.all(abs(K_new_evs - K_new)<1e-5) 
 
@@ -219,7 +230,8 @@ if __name__ == "__main__":
     roots = []
     for root, dirs, files in os.walk(args.indir):
         for f in files:
-            if f.endswith(".bag"):#如果是rosbag文件
+            # if f.endswith(".bag"):#如果是rosbag文件
+            if f=="boxes_translation.bag": #debug used
                 p = os.path.join(root, f"{f.split('.')[0]}")
                 #如果存在，先删除
                 if os.path.exists(p):
