@@ -232,8 +232,8 @@ if __name__ == "__main__":
     roots = []
     for root, dirs, files in os.walk(args.indir):
         for f in files:
-            # if f.endswith(".bag"):#如果是rosbag文件
-            if f=="boxes_translation.bag": #debug used
+            if f.endswith(".bag"):#如果是rosbag文件
+            # if f=="boxes_translation.bag": #debug used
                 p = os.path.join(root, f"{f.split('.')[0]}")
                 #如果存在，先删除
                 if os.path.exists(p):
@@ -243,7 +243,7 @@ if __name__ == "__main__":
                     roots.append(p)#将文件夹的路径加入到roots中
 
     
-    cors = 1 #3
+    cors = 4 #3
     assert cors <= 9
     roots_split = np.array_split(roots, cors)
 
