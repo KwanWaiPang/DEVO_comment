@@ -4,17 +4,53 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+        // {
+        //     "name": "pp_davis240c",
+        //     "type": "debugpy",
+        //     "request": "launch",
+        //     "program": "scripts/pp_davis240c.py",
+        //     "console": "integratedTerminal",
+        //     "env": {
+        //         "CUDA_VISIBLE_DEVICES": "2"
+        //     },
+        //     "args":[
+        //         "--indir=/media/lfl-data2/davis240c/",
+        //     ]
+
+        // },
         {
-            "name": "pp_davis240c",
+            "name": "eval_davis240c",
             "type": "debugpy",
             "request": "launch",
-            "program": "scripts/pp_davis240c.py",
+            "program": "evals/eval_evs/eval_davis240c_evs.py",
             "console": "integratedTerminal",
             "env": {
                 "CUDA_VISIBLE_DEVICES": "2"
             },
             "args":[
-                "--indir=/media/lfl-data2/davis240c/",
+                "--datapath=/media/lfl-data2/davis240c/",
+                "--weights=DEVO.pth",
+                "--stride=1",
+                "--trials=1",
+                "--expname=boxes_6dof_first_test"
+            ]
+
+        },
+        {
+            "name": "eval_stereo-HKU",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "evals/eval_evs/eval_hku_evs.py",
+            "console": "integratedTerminal",
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "2"
+            },
+            "args":[
+                "--datapath=/home/gwp/DEVO/datasets/HKU_dataset/",
+                "--weights=DEVO.pth",
+                "--stride=1",
+                "--trials=1",
+                "--expname=gwphku_debug_test"
             ]
 
         }

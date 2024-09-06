@@ -11,6 +11,7 @@
   <h3 align="center">
   <a href="https://arxiv.org/pdf/2312.09800">Paper</a> 
   | <a href="https://github.com/tum-vision/DEVO">Original Github Page</a>
+  | <a href="https://github.com/KwanWaiPang/raw_DEVO">测试版本的DEVO</a>
   | <a href="https://blog.csdn.net/gwplovekimi/article/details/139436796?spm=1001.2014.3001.5501">CSDN DPVO的配置教程</a>
   </h3>
   <div align="center"></div>
@@ -129,7 +130,13 @@ python evals/eval_evs/eval_fpv_evs.py --datapath=/home/gwp/DEVO/datasets/uzh-fpv
   <img width="90%" src="assets/fpv_indoor_forward7.png">
 </p>
 
-
+# 更多验证
+### 验证davis240c
+~~~
+conda activate devo
+python scripts/pp_davis240c.py --indir=/media/lfl-data2/davis240c/
+python evals/eval_evs/eval_davis240c_evs.py --datapath=/media/lfl-data2/davis240c/ --weights="DEVO.pth" --stride=1 --trials=1 --expname=boxes_6dof_first_test
+~~~
 
 
 # 系列Debug

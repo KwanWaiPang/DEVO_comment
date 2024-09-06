@@ -2,22 +2,22 @@ import os
 import torch
 from devo.config import cfg
 
-# # 处理服务器中evo的可视化问题
-# import evo
-# from evo.tools.settings import SETTINGS
-# SETTINGS['plot_backend'] = 'Agg'
+# 处理服务器中evo的可视化问题
+import evo
+from evo.tools.settings import SETTINGS
+SETTINGS['plot_backend'] = 'Agg'
 
-from utils.load_utils import load_gt_us, hku_evs_iterator
+from utils.load_utils import load_gt_us, davis240c_evs_iterator
 from utils.eval_utils import assert_eval_config, run_voxel
 from utils.eval_utils import log_results, write_raw_results, compute_median_results
 from utils.viz_utils import viz_flow_inference
 
-H, W = 260, 346
+H, W = 180, 240
 
 @torch.no_grad()  #表示该函数不会计算梯度（由于是导入网络权重的）
 def evaluate(config, args, net, train_step=None, datapath="", split_file=None, 
              trials=1, stride=1, plot=False, save=False, return_figure=False, viz=False, timing=False, side='left', viz_flow=False):
-    dataset_name = "hku_evs"
+    dataset_name = "davis240c_evs"
     assert side == "left" or side == "right"
 
     # 若配置文件为空，则使用默认配置文件
@@ -40,9 +40,9 @@ def evaluate(config, args, net, train_step=None, datapath="", split_file=None,
             datapath_val = os.path.join(datapath, scene)
 
             # run the slam system
-            # 通过调用hku_evs_iterator来将事件数据进行打包处理
+            # 通过调用davis240c_evs_iterator来将事件数据进行打包处理
             traj_est, tstamps, flowdata = run_voxel(datapath_val, config, net, viz=viz, 
-                                          iterator=hku_evs_iterator(datapath_val, side=side, stride=stride, timing=timing, H=H, W=W),
+                                          iterator=davis240c_evs_iterator(datapath_val, side=side, stride=stride, timing=timing, H=H, W=W),
                                           timing=timing, H=H, W=W, viz_flow=viz_flow)
 
             # load  traj（这应该是获取gt trajectory的值,从txt文件中读取）
@@ -74,11 +74,11 @@ if __name__ == '__main__':
     import argparse
     # 导入一系列参数
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', default="config/eval_hku.yaml")
+    parser.add_argument('--config', default="config/eval_davis240c.yaml")#参数文件
     parser.add_argument('--datapath', default='', help='path to dataset directory')
     parser.add_argument('--weights', default="DEVO.pth")
-    parser.add_argument('--val_split', type=str, default="splits/hku/hku_val.txt") # 验证集的路径,有它来决定验证的序列
-    parser.add_argument('--trials', type=int, default=5)
+    parser.add_argument('--val_split', type=str, default="splits/davis240c/davis240c_val.txt") # 验证集的路径,有它来决定验证的序列
+    parser.add_argument('--trials', type=int, default=5)# 试验次数
     parser.add_argument('--plot', action="store_true")
     parser.add_argument('--save_trajectory', action="store_true")
     parser.add_argument('--return_figs', action="store_true")
@@ -95,10 +95,10 @@ if __name__ == '__main__':
 
     # args.config就是VO的配置文件，通过merge_from_file函数将配置文件中的内容合并到程序的配置对象cfg中（cfg 是一个配置对象，用来存储程序运行时所需的各种配置参数）
     cfg.merge_from_file(args.config)
-    print("Running eval_hku_evs.py with config...")
+    print("Running eval_davis240c_evs.py with config...")
     print(cfg) 
 
-    torch.manual_seed(1234)
+    torch.manual_seed(1234)# 设置随机种子
 
     # 人为设置一些参数
     args.save_trajectory = True
