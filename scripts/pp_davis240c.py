@@ -11,7 +11,7 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 import tqdm as tqdm
 import h5py
-from utils.bag_utils import read_H_W_from_bag, read_tss_us_from_rosbag, read_images_from_rosbag, read_evs_from_rosbag, read_calib_from_bag, read_t0us_evs_from_rosbag, read_poses_from_rosbag, read_imu_from_rosbag
+from utils.bag_utils import read_H_W_from_bag, read_tss_us_from_rosbag, read_images_from_rosbag, read_evs_from_rosbag, read_calib_from_bag, read_t0us_evs_from_rosbag, read_poses_from_rosbag, read_imu_from_rosbag, read_tss_ns_from_rosbag
 
 # 处理服务器中evo的可视化问题
 import evo
@@ -91,25 +91,25 @@ def process_dirs(indirs, side="left", DELTA_MS=None):
         dist_coeffs = np.asarray([k1, k2, p1, p2])
 
         K_new, roi = cv2.getOptimalNewCameraMatrix(Kdist, dist_coeffs, (W, H), alpha=0, newImgSize=(W, H))
-        
-        coords = np.stack(np.meshgrid(np.arange(W), np.arange(H))).reshape((2, -1)).astype("float32") # TODO: +-1 missing??
-        term_criteria = (cv2.TERM_CRITERIA_MAX_ITER | cv2.TERM_CRITERIA_EPS, 100, 0.001)
-        points = cv2.undistortPointsIter(coords, Kdist, dist_coeffs, np.eye(3), K_new, criteria=term_criteria)
-        rectify_map = points.reshape((H, W, 2))       
 
-        h5outfile = os.path.join(indir, f"rectify_map_{side}.h5")#将去除失真的结果保存到h5文件中
-        ef_out = h5py.File(h5outfile, 'w')
-        ef_out.clear()
-        ef_out.create_dataset('rectify_map', shape=(H, W, 2), dtype="<f4")
-        ef_out["rectify_map"][:] = rectify_map
-        ef_out.close() 
-
-        # undistorting images
-        img_mapx, img_mapy = cv2.initUndistortRectifyMap(Kdist, dist_coeffs, np.eye(3), K_new, (W, H), cv2.CV_32FC1)  
-        
         f = open(os.path.join(indir, f"calib_undist_{side}.txt"), 'w')#将去除失真的参数保存到文件中
         f.write(f"{K_new[0,0]} {K_new[1,1]} {K_new[0,2]} {K_new[1,2]}")
         f.close()
+        
+        # coords = np.stack(np.meshgrid(np.arange(W), np.arange(H))).reshape((2, -1)).astype("float32") # TODO: +-1 missing??
+        # term_criteria = (cv2.TERM_CRITERIA_MAX_ITER | cv2.TERM_CRITERIA_EPS, 100, 0.001)
+        # points = cv2.undistortPointsIter(coords, Kdist, dist_coeffs, np.eye(3), K_new, criteria=term_criteria)
+        # rectify_map = points.reshape((H, W, 2))       
+
+        # h5outfile = os.path.join(indir, f"rectify_map_{side}.h5")#将去除失真的结果保存到h5文件中
+        # ef_out = h5py.File(h5outfile, 'w')
+        # ef_out.clear()
+        # ef_out.create_dataset('rectify_map', shape=(H, W, 2), dtype="<f4")
+        # ef_out["rectify_map"][:] = rectify_map
+        # ef_out.close() 
+
+        # undistorting images
+        img_mapx, img_mapy = cv2.initUndistortRectifyMap(Kdist, dist_coeffs, np.eye(3), K_new, (W, H), cv2.CV_32FC1)  
 
         # undistorting images
         pbar = tqdm.tqdm(total=len(imgs)-1)
@@ -131,43 +131,38 @@ def process_dirs(indirs, side="left", DELTA_MS=None):
         tss_imgs_us = read_tss_us_from_rosbag(bag, topics[imgtopic_idx])#获取图片的时间戳
         assert len(tss_imgs_us) == len(imgs)
 
+        ts_imgs_ns = read_tss_ns_from_rosbag(bag, topics[imgtopic_idx])#获取图片的时间戳(纳秒为单位)
+        # saving 原始的时间
+        f = open(os.path.join(indir, f"raw_tss_imgs_ns_{side}.txt"), 'w')#注意这里保存的时间单位是ns并且是原始的时间
+        for t in ts_imgs_ns:
+            f.write(f"{t}\n")
+        f.close()
+
         # 获取GT pose
         poses, tss_gt_us = read_poses_from_rosbag(bag, posetopic, T_marker_cam0, T_cam0_cam1=T_cam0_cam1)
         t0_evs = read_t0us_evs_from_rosbag(bag, topics[evtopic_idx])
         assert sorted(tss_imgs_us) == tss_imgs_us
         assert sorted(tss_gt_us) == tss_gt_us
 
+        write_gt_stamped(poses, tss_gt_us, os.path.join(indir, f"raw_gt_stamped_ns_{side}.txt"))#保存真值pose
+
         # 选择最小的时间戳作为起始时间
         t0_us = np.minimum(np.minimum(tss_gt_us[0], tss_imgs_us[0]), t0_evs)
-        tss_imgs_us = [t - t0_us for t in tss_imgs_us]
+        tss_imgs_us = [t - t0_us for t in tss_imgs_us]#减去起始时间，获得的就是相对时间
 
         # saving tss
-        f = open(os.path.join(indir, f"tss_imgs_us_{side}.txt"), 'w')
+        f = open(os.path.join(indir, f"tss_imgs_us_{side}.txt"), 'w')#注意这里保存的时间单位是us
         for t in tss_imgs_us:
             f.write(f"{t:.012f}\n")
         f.close()
 
-        tss_gt_us = [t - t0_us for t in tss_gt_us]
+        tss_gt_us = [t - t0_us for t in tss_gt_us]#减去起始时间，获得的就是相对时间
         write_gt_stamped(poses, tss_gt_us, os.path.join(indir, f"gt_stamped_{side}.txt"))#保存真值pose
 
         #保存IMU数据
         imu_topic = "/dvs/imu"
         all_imu=read_imu_from_rosbag(bag, imu_topic)
         write_imu(all_imu,os.path.join(indir, f"imu_data.csv"))
-        # # imu_out_file  = open(os.path.join(indir, f"imu_data.csv"), 'w') 
-        # # imu_out_file.write("#timestamp [ns],w_RS_S_x [rad s^-1],w_RS_S_y [rad s^-1],w_RS_S_z [rad s^-1],a_RS_S_x [m s^-2],a_RS_S_y [m s^-2],a_RS_S_z [m s^-2]\n")
-        # for topic, msg, t in bag_data.read_messages(imu_topic):
-        #     acc_x = msg.linear_acceleration.x
-        #     acc_y = msg.linear_acceleration.y
-        #     acc_z = msg.linear_acceleration.z
-        #     w_x   = msg.angular_velocity.x
-        #     w_y   = msg.angular_velocity.y
-        #     w_z   = msg.angular_velocity.z
-        #     # timeimu = msg.header.stamp
-        #     timeimu = "%.0f" % (msg.header.stamp.to_sec()*1000000000) 
-        #     # imu_out_file.write(timeimu+","+str(w_x)+","+str(w_y)+","+str(w_z)+","+str(acc_x)+","+str(acc_y)+","+str(acc_z)+"\n")
-        #     # all_imu.append([timeimu,w_x,w_y,w_z,acc_x,acc_y,acc_z])
-        # # imu_out_file.close()#要关闭文件
 
         # TODO: write events (and also substract t0_evs)
         evs = read_evs_from_rosbag(bag, topics[evtopic_idx], H=H, W=W)#读取events
@@ -176,9 +171,12 @@ def process_dirs(indirs, side="left", DELTA_MS=None):
         #     f.write(f"{(evs[i, 2] - t0_us):.04f} {int(evs[i, 0])} {int(evs[i, 1])} {int(evs[i, 3])}\n")
         # f.close()
 
+        raw_timestamp_h5outfile = os.path.join(indir, f"raw_timestamp_evs_{side}.h5")
+        write_evs_arr_to_h5(evs, raw_timestamp_h5outfile)#将events保存到h5文件中
+
         for ev in evs:
             ev[2] -= t0_us #减去起始时间,获得的就是相对时间
-        h5outfile = os.path.join(indir, f"evs_{side}.h5")
+        h5outfile = os.path.join(indir, f"evs_{side}.h5")#注意此文件只保留了相对时间
         write_evs_arr_to_h5(evs, h5outfile)#将events保存到h5文件中
 
         distcoeffs=dist_coeffs#获取失真参数
